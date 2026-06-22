@@ -1,0 +1,10 @@
+# Local / machine-specific
+.claude/settings.local.json
+.claude/worktrees/
+
+# invoker retro working state (gitignored per .claude/rules/retro-loop.md)
+.invoker/ideas_4_rules.md
+.invoker/retro/
+
+# Backups
+IDEA.md.bak
