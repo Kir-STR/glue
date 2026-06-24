@@ -128,10 +128,8 @@ if (totalRules === 0) {
     '\n</glue>';
 }
 
-const payload =
-  process.env.CLAUDE_PLUGIN_ROOT && !process.env.COPILOT_CLI
-    ? { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: context } }
-    : { additionalContext: context };
+// SessionStart на Claude Code: единственная корректная форма ответа.
+const payload = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: context } };
 
 process.stdout.write(JSON.stringify(payload));
 process.exit(0);
