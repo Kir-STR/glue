@@ -8,7 +8,7 @@ It ships as three self-contained plugins, installable in any combination as a pr
 - **P2 "Decisions & Constraints"** — recording decisions and hard enforcement of constraints (code judge + provenance).
 - **P3 "Support"** — the same pattern for infrastructure (backlog).
 
-Full concept (in Russian): see [`IDEA.md`](IDEA.md).
+Full concept (in Russian): see [`docs/superpowers/specs/2026-06-23-glue-concept-design_v2.md`](docs/superpowers/specs/2026-06-23-glue-concept-design_v2.md).
 
 ## Repository
 
