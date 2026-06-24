@@ -65,8 +65,11 @@ function readPackRules(pack) {
     const full = join(dir, f);
     try {
       if (!statSync(full).isFile()) continue;
-      const text = readFileSync(full, 'utf8');
-      out.push({ file: f, ...parseRule(text, f), bytes: Buffer.byteLength(text, 'utf8') });
+      const raw = readFileSync(full, 'utf8');
+      // Нормализуем CRLF → LF: frontmatter-regex в parseRule завязан на \n,
+      // а правило могло быть авторено на Windows с \r\n.
+      const text = raw.replace(/\r\n/g, '\n');
+      out.push({ file: f, ...parseRule(text, f), bytes: Buffer.byteLength(raw, 'utf8') });
     } catch (e) {
       diag(`не прочитал ${full}: ${e.message}`);
     }
