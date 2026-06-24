@@ -1,0 +1,8 @@
+{
+  "name": "glue-rules",
+  "version": "0.1.0",
+  "description": "Glue content pack П1 «Правила и знания»: правила проекта как видимые артефакты (MVP: rules/*.md).",
+  "dependencies": [
+    { "name": "glue-core", "version": "~0.1.0" }
+  ]
+}

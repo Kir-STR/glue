@@ -1,0 +1,21 @@
+{
+  "name": "glue",
+  "owner": {
+    "name": "Kirill Bogdanov",
+    "email": "kirill.bogdanov@strela.digital"
+  },
+  "plugins": [
+    {
+      "name": "glue-core",
+      "source": "./plugins/glue-core",
+      "description": "Glue core: команда glue, собирающая видимость артефактов из установленных контент-паков (MVP: чтение rules из glue-* паков).",
+      "author": { "name": "Kirill Bogdanov" }
+    },
+    {
+      "name": "glue-rules",
+      "source": "./plugins/glue-rules",
+      "description": "Glue content pack П1 «Правила и знания»: правила проекта как видимые артефакты (MVP: rules/*.md).",
+      "author": { "name": "Kirill Bogdanov" }
+    }
+  ]
+}
