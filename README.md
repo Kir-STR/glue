@@ -2,11 +2,11 @@
 
 Glue is an approach to working with project artifacts, embodied as a set of plugins: it makes a project's knowledge, rules, decisions, constraints, and skills addressable, linked, observable, and traceable. Glue doesn't manage your code, replace development or planning tools, or orchestrate agents — it ties together what lives around the work.
 
-It ships as three self-contained plugins, installable in any combination as a project grows:
+It ships through the `glue` marketplace: the `glue-core` plugin (command, map, judges, adapters) plus content packs you install as a project grows. Each pack depends on `glue-core@glue`, so the core is delivered automatically — you just pick the packs you need:
 
-- **P1 "Rules & Knowledge"** — structure and visibility for rules and knowledge (no code judge).
-- **P2 "Decisions & Constraints"** — recording decisions and hard enforcement of constraints (code judge + provenance).
-- **P3 "Support"** — the same pattern for infrastructure (backlog).
+- **`glue-rules` (P1 "Rules & Knowledge")** — structure and visibility for rules and knowledge (soft control only — brings no constraints to enforce).
+- **`glue-decisions` (P2 "Decisions & Constraints")** — recording decisions and hard enforcement of constraints (code judge + provenance).
+- **`glue-support` (P3 "Support")** — the same pattern for infrastructure (backlog).
 
 Full concept (in Russian): see [`docs/superpowers/specs/2026-06-23-glue-concept-design_v2.md`](docs/superpowers/specs/2026-06-23-glue-concept-design_v2.md).
 
