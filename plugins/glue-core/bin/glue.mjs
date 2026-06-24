@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-// glue — core-команда (MVP 0.1.0).
+// glue — core-команда (MVP 0.1.1).
 //
 // Задача среза: из core-плагина в рантайме хука собрать видимость правил,
 // которые лежат в ОТДЕЛЬНЫХ установленных контент-паках (glue-*). Это и есть
 // проверка несущего риска: судья/команда в core читает контент чужого пака.
+//
+// 0.1.1: инжектим ТЕЛО правил (не только имена) — чтобы агент знал, чему
+// следовать, без отдельного чтения файлов (вывод dogfooding'а 0.1.0).
 //
 // Каналы (контракт формы): stdout = ответ (SessionStart additionalContext, JSON),
 // stderr = только диагностика, exit-code = итог. Плюс трасса последнего прогона
@@ -63,7 +66,7 @@ function readPackRules(pack) {
     try {
       if (!statSync(full).isFile()) continue;
       const text = readFileSync(full, 'utf8');
-      out.push({ file: f, title: extractTitle(text, f), bytes: Buffer.byteLength(text, 'utf8') });
+      out.push({ file: f, ...parseRule(text, f), bytes: Buffer.byteLength(text, 'utf8') });
     } catch (e) {
       diag(`не прочитал ${full}: ${e.message}`);
     }
@@ -71,16 +74,17 @@ function readPackRules(pack) {
   return out;
 }
 
-// title: frontmatter name -> первый markdown-заголовок -> имя файла
-function extractTitle(text, fallbackFile) {
-  const fm = text.match(/^---\n([\s\S]*?)\n---/);
-  if (fm) {
-    const m = fm[1].match(/^name:\s*(.+)$/m);
-    if (m) return m[1].trim();
-  }
-  const h = text.match(/^#\s+(.+)$/m);
-  if (h) return h[1].trim();
-  return fallbackFile.replace(/\.md$/, '');
+// Разбор правила за один проход: title, class (из frontmatter), body (без frontmatter).
+// title: frontmatter name -> первый markdown-заголовок -> имя файла.
+function parseRule(text, fallbackFile) {
+  const m = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const fm = m ? m[1] : '';
+  const body = (m ? m[2] : text).trim();
+  const nameM = fm.match(/^name:\s*(.+)$/m);
+  const classM = fm.match(/^class:\s*(.+)$/m);
+  const headM = body.match(/^#\s+(.+)$/m);
+  const title = (nameM && nameM[1].trim()) || (headM && headM[1].trim()) || fallbackFile.replace(/\.md$/, '');
+  return { title, ruleClass: classM ? classM[1].trim() : null, body };
 }
 
 // --- 3. Сборка + вывод ----------------------------------------------------
@@ -99,10 +103,15 @@ diag(`собрано паков: ${collected.length}; правил: ${totalRules
 try {
   const glueDir = join(PROJECT_DIR, '.glue');
   mkdirSync(glueDir, { recursive: true });
+  // Трасса — метаданные правил без тела (тело идёт в контекст, не дублируем).
+  const tracePacks = collected.map((p) => ({
+    ...p,
+    rules: p.rules.map(({ file, title, ruleClass, bytes }) => ({ file, title, ruleClass, bytes })),
+  }));
   writeFileSync(
     join(glueDir, 'last-run.json'),
     JSON.stringify(
-      { ranAt: new Date().toISOString(), registry: REGISTRY, projectDir: PROJECT_DIR, packs: collected },
+      { ranAt: new Date().toISOString(), registry: REGISTRY, projectDir: PROJECT_DIR, packs: tracePacks },
       null,
       2,
     ),
@@ -118,13 +127,16 @@ if (totalRules === 0) {
     '<glue>\nGlue: установленных контент-паков с правилами не найдено. ' +
     'Контроль не применяется — сообщаю честно, иллюзии покрытия нет.\n</glue>';
 } else {
-  const lines = [];
+  const blocks = [];
   for (const p of collected) {
-    for (const r of p.rules) lines.push(`- [${p.pack}] ${r.title} (${r.file})`);
+    for (const r of p.rules) {
+      const cls = r.ruleClass ? ` _(${r.ruleClass})_` : '';
+      blocks.push(`## [${p.pack}] ${r.title}${cls}\n${r.body}`);
+    }
   }
   context =
-    '<glue>\nАктивные правила проекта (Glue собрал из установленных контент-паков):\n' +
-    lines.join('\n') +
+    '<glue>\nАктивные правила проекта (Glue, из установленных контент-паков). Соблюдай их:\n\n' +
+    blocks.join('\n\n') +
     '\n</glue>';
 }
 
