@@ -8,3 +8,6 @@
 
 # Backups
 IDEA.md.bak
+
+# Archived docs (kept on disk + in git history, out of current tracking)
+docs/archive/
