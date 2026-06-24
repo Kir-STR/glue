@@ -157,8 +157,10 @@ git commit -m "feat(glue-rules): declarative pack contract + 10-module registry"
 
 **Files:**
 - Create: `plugins/glue-rules/rules/templates/<id>.md` (×10)
-- Delete: `plugins/glue-rules/rules/commit-discipline.md`, `plugins/glue-rules/rules/secret-hygiene.md` (старые MVP-правила, заменяются)
+- Keep (НЕ удалять): `plugins/glue-rules/rules/commit-discipline.md`, `plugins/glue-rules/rules/secret-hygiene.md`
 - Test: `plugins/glue-rules/test/templates.test.mjs`
+
+**Fallback-совместимость (дефект-фикс):** старый `glue-core` 0.1.1 читает `rules/*.md` **нерекурсивно** (верхний уровень). Если PR1 удалит эти файлы, fallback-инъекция найдёт ноль правил до выхода PR2 — окно потери. Поэтому PR1 **оставляет** `rules/commit-discipline.md` и `rules/secret-hygiene.md` на верхнем уровне (старый core продолжает их инжектить), а новые 10 модулей кладёт в подкаталог `rules/templates/` (нерекурсивный fallback их не видит — дублирования в инъекции нет). Legacy-файлы удаляются **отдельной задачей в PR2** (Task 2.10), уже после переключения хука на нативную доставку.
 
 **Interfaces:**
 - Produces: 10 файлов-шаблонов правил в `rules/templates/`, имена совпадают с `registry[id].templates`.
@@ -216,12 +218,20 @@ Expected: FAIL (шаблонов нет).
 на
 `gitignored / local-only файлы (например, `.claude/settings.local.json`, `.env*`)`.
 
-- [ ] **Step 5: Удалить старые MVP-правила**
+- [ ] **Step 5: Дописать дословный тест fallback-совместимости**
 
-```bash
-git rm plugins/glue-rules/rules/commit-discipline.md plugins/glue-rules/rules/secret-hygiene.md
+В `templates.test.mjs` добавить:
+```javascript
+import { existsSync as exists2 } from 'node:fs'
+test('fallback layer preserved for old core 0.1.1 (top-level rules/*.md kept)', () => {
+  // старый core читает rules/ нерекурсивно; эти файлы должны остаться до PR2 cutover
+  assert.ok(exists2(join(PACK, 'rules', 'commit-discipline.md')), 'commit-discipline kept')
+  assert.ok(exists2(join(PACK, 'rules', 'secret-hygiene.md')), 'secret-hygiene kept')
+  // новые модули — в подкаталоге, нерекурсивный fallback их не подхватит (нет дубля)
+  assert.ok(exists2(join(PACK, 'rules', 'templates', 'operator-gate.md')))
+})
 ```
-(secret-hygiene теперь приходит как полноценный invoker-модуль в `templates/`.)
+(Старые `rules/commit-discipline.md`/`secret-hygiene.md` НЕ удаляются — оставлены для fallback. Полноценный secret-hygiene-модуль живёт отдельно в `rules/templates/secret-hygiene.md`.)
 
 - [ ] **Step 6: Запустить — PASS**
 
@@ -732,15 +742,20 @@ git commit -m "feat(glue-core): delivery manifest schema + atomic write"
 
 **Interfaces:**
 - Consumes: `resolveDependencies`, `mergePackRegistries`, `safeSourcePath`/`safeTargetPath`, `hashContent`, `filterModuleBlocks`, `readManifest`.
-- Produces: `plan({packs, selected, engines, projectDir, prevManifest}) → { writes: [{targetPath, plannedHash, content, sourcePack, packVersion, sourceTemplate, expectedCurrentHash}], deletes: [{targetPath, expectedCurrentHash}], conflicts: [{targetPath, reason}] }`. Чистая функция: читает диск для текущих хешей, **не пишет**. `expectedCurrentHash` — хеш файла, который planner видел (или `null` если файла не было); writer сверяет его перед записью/удалением (TOCTOU). `packVersion`/`sourceTemplate`/`sourcePack` — для записи манифеста.
+- Produces: `plan({packs, selected, engines, projectDir, prevManifest, force}) → { writes: [{targetPath, plannedHash, content, sourcePack, packVersion, sourceTemplate, expectedCurrentHash}], materialized: [{targetPath, plannedHash, sourcePack, packVersion, sourceTemplate}], deletes: [{targetPath, expectedCurrentHash}], conflicts: [{targetPath, reason}] }`. Чистая функция: читает диск для текущих хешей, **не пишет**.
+  - `expectedCurrentHash` — хеш файла, который planner видел (или `null` если файла не было); writer сверяет его перед записью/удалением (TOCTOU).
+  - `materialized` — файлы, **уже** несущие `plannedHash` (recovery: прерванный запуск их записал). Не пишутся повторно, **но входят в новый манифест** — иначе recovery-файл выпал бы из `files[]` (дефект-фикс).
+  - `force === true` → `conflicts` переводятся в `writes`/`deletes` (принудительно).
+  - `packVersion`/`sourceTemplate`/`sourcePack` — для записи манифеста.
 
 **Конфликт-алгоритм (из спеки):** для каждого планируемого target — `plannedHash` (хеш нового содержимого) vs текущий хеш на диске vs `writtenHash` из `prevManifest`:
-- отсутствует → write;
-- текущий == plannedHash → уже записан (recovery) → skip (не в writes);
-- управляется prevManifest и текущий == writtenHash → write (обновить);
-- текущий != plannedHash и != writtenHash → conflict;
-- неизвестен prevManifest и текущий != plannedHash → conflict.
-**Удаление:** target из prevManifest, отсутствующий в новом плане → delete (если текущий == writtenHash) или conflict (если правлен).
+- отсутствует → **write**;
+- текущий == plannedHash → **materialized** (recovery: уже записан; в манифест, без записи);
+- управляется prevManifest и текущий == writtenHash → **write** (обновить);
+- текущий != plannedHash и != writtenHash → **conflict** (или write при `force`);
+- неизвестен prevManifest и текущий != plannedHash → **conflict** (или write при `force`).
+**Удаление:** target из prevManifest, отсутствующий в новом наборе target'ов → **delete** (если текущий == writtenHash) или **conflict** (если правлен; → delete при `force`).
+**Манифест итогового запуска = `writes ∪ materialized`** (writer; см. Task 2.6).
 
 - [ ] **Step 1: Тестовая матрица planner** (полная — конфликты, recovery, удаление)
 
@@ -761,16 +776,55 @@ function fixturePacks(content) {
     registry: { alpha: { title: 'A', templates: ['alpha.md'], instructionBlock: 'alpha', dependsOn: [] } } }]
 }
 
-test('absent target → write', () => { /* planned write present, no conflict */ })
-test('current == plannedHash → skip (recovery of interrupted run)', () => { /* not in writes, not conflict */ })
-test('managed & current == writtenHash → write (update)', () => { /* in writes */ })
-test('current != planned and != writtenHash → conflict', () => { /* in conflicts */ })
-test('unmanaged existing != planned → conflict', () => { /* in conflicts */ })
-test('--force resolves conflict to write', () => { /* force flag */ })
-test('dropped managed module unchanged → delete', () => { /* in deletes */ })
-test('dropped managed module hand-edited → conflict', () => { /* in conflicts */ })
+// helper: один пак с модулем alpha; шаблон alpha.md несёт известное `content`.
+// setup(projectDir, fileContent|null, prevManifest|null) готовит диск.
+const TARGET = '.claude/rules/alpha.md'
+
+// named-кейсы (тела по шаблону helper'а — раскрыть при реализации):
+test('absent target → write', () => { /* нет файла → в writes, нет conflict */ })
+test('managed & current == writtenHash → write (update)', () => { /* в writes */ })
+test('current != planned and != writtenHash → conflict', () => { /* в conflicts */ })
+test('unmanaged existing != planned → conflict', () => { /* в conflicts */ })
+test('dropped managed module unchanged → delete', () => { /* в deletes */ })
+test('dropped managed module hand-edited → conflict', () => { /* в conflicts */ })
+
+// ДОСЛОВНЫЕ (дефект-фиксы):
+test('current == plannedHash → materialized, not write (recovery into manifest)', () => {
+  const proj = mkdtempSync(join(tmpdir(), 'glue-'))
+  mkdirSync(join(proj, '.claude', 'rules'), { recursive: true })
+  const content = readTemplateAlpha() // то, что planner собирается записать
+  writeFileSync(join(proj, TARGET), content)           // файл уже == plannedHash
+  const r = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude'], projectDir: proj, prevManifest: null, force: false })
+  assert.ok(!r.writes.some((w) => w.targetPath === TARGET), 'not re-written')
+  assert.ok(!r.conflicts.some((c) => c.targetPath === TARGET), 'not a conflict')
+  assert.ok(r.materialized.some((m) => m.targetPath === TARGET && m.plannedHash === hashContent(content)),
+    'recovery file present in materialized → reaches manifest')
+})
+
+test('force turns a conflict into a write', () => {
+  const proj = mkdtempSync(join(tmpdir(), 'glue-'))
+  mkdirSync(join(proj, '.claude', 'rules'), { recursive: true })
+  writeFileSync(join(proj, TARGET), 'hand-edited unmanaged\n')   // != planned, unmanaged
+  const noForce = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude'], projectDir: proj, prevManifest: null, force: false })
+  assert.ok(noForce.conflicts.some((c) => c.targetPath === TARGET))
+  const forced = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude'], projectDir: proj, prevManifest: null, force: true })
+  assert.ok(forced.writes.some((w) => w.targetPath === TARGET), 'force → write')
+  assert.equal(forced.conflicts.length, 0)
+})
+
+test('force turns a hand-edited dropped file into a delete', () => {
+  const proj = mkdtempSync(join(tmpdir(), 'glue-'))
+  mkdirSync(join(proj, '.claude', 'rules'), { recursive: true })
+  const stale = '.claude/rules/old.md'
+  writeFileSync(join(proj, stale), 'edited\n')
+  const prev = { schemaVersion: '1', status: 'complete', files: [{ targetPath: stale, writtenHash: hashContent('orig\n'), producerPack: 'glue-rules', packVersion: '0.2.0', sourceTemplate: 'old.md' }] }
+  const noForce = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude'], projectDir: proj, prevManifest: prev, force: false })
+  assert.ok(noForce.conflicts.some((c) => c.targetPath === stale))
+  const forced = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude'], projectDir: proj, prevManifest: prev, force: true })
+  assert.ok(forced.deletes.some((d) => d.targetPath === stale), 'force → delete')
+})
 ```
-(Каждый кейс: подготовить projectDir с нужным состоянием файла + prevManifest, вызвать `plan`, проверить распределение target по writes/deletes/conflicts. Реализовать тела по шаблону helper'а.)
+(named-кейсы выше раскрываются по тому же helper-шаблону при реализации; дословные — обязательны как есть.)
 
 - [ ] **Step 2: Запустить — FAIL**
 
@@ -796,8 +850,11 @@ git commit -m "feat(glue-core): planner — conflict/recovery/deletion algorithm
 - Test: `plugins/glue-core/test/writer.test.mjs`
 
 **Interfaces:**
-- Consumes: plan (Task 2.5), `hashContent`, `buildManifest`/`writeManifest`, `safeTargetPath`.
-- Produces: `applyPlan({plan, projectDir, engines, modules, deliveryId, completedAt}) → manifest`. Пишет файлы плана, TOCTOU-перепроверка перед каждой заменой, удаляет deletes, публикует манифест последним.
+- Consumes: plan (Task 2.5 — `writes`, `materialized`, `deletes`), `hashContent`, `buildManifest`/`writeManifest`, `safeTargetPath`.
+- Produces: `applyPlan({plan, projectDir, engines, modules, deliveryId, completedAt}) → manifest`. Пишет `writes`, удаляет `deletes`, публикует манифест **последним**.
+  - **Манифест `files[]` = `writes ∪ materialized`** (дефект-фикс): recovery-файлы (`materialized`) не переписываются, но входят в манифест.
+  - **TOCTOU-контракт (один, однозначный):** перед каждой записью/удалением writer перечитывает текущий хеш и сверяет с `expectedCurrentHash` из плана. При несовпадении — **abort всего применения** (throw): изменившийся файл не трогается, манифест **не публикуется**. Уже сделанные записи остаются смешанным состоянием — его поймает recovery при следующем `glue init` (по спеке). Никакого «throw или пропуск» — только abort.
+  - **Symlink:** перед записью `lstatSync(target).isSymbolicLink()` → abort (path-safety).
 
 - [ ] **Step 1: Тест TOCTOU (акцент 2)**
 
@@ -814,17 +871,31 @@ import { hashContent } from '../lib/hash.mjs'
 test('writes planned files and publishes manifest last', () => {
   const dir = mkdtempSync(join(tmpdir(), 'glue-'))
   const content = '# rule\n'
-  const p = { writes: [{ targetPath: '.claude/rules/alpha.md', plannedHash: hashContent(content), content, sourcePack: 'glue-rules', sourceTemplate: 'alpha.md', packVersion: '0.2.0' }], deletes: [], conflicts: [] }
+  const p = { writes: [{ targetPath: '.claude/rules/alpha.md', plannedHash: hashContent(content), content, sourcePack: 'glue-rules', sourceTemplate: 'alpha.md', packVersion: '0.2.0', expectedCurrentHash: null }], materialized: [], deletes: [], conflicts: [] }
   const m = applyPlan({ plan: p, projectDir: dir, engines: ['claude'], modules: ['alpha'], deliveryId: 'd', completedAt: 't' })
   assert.equal(readFileSync(join(dir, '.claude/rules/alpha.md'), 'utf8'), content)
   assert.equal(m.status, 'complete')
 })
 
-test('TOCTOU: file changed after planning is not clobbered', () => {
+test('manifest includes materialized (recovery) files, not just writes', () => {
   const dir = mkdtempSync(join(tmpdir(), 'glue-'))
-  // план рассчитан на expectedHash старого содержимого; на диске уже другое
-  // (writer перед заменой перечитывает хеш и видит расхождение)
-  // ожидаем: throw / пропуск этого файла без затирания
+  const p = {
+    writes: [],
+    materialized: [{ targetPath: '.claude/rules/alpha.md', plannedHash: 'h1', sourcePack: 'glue-rules', packVersion: '0.2.0', sourceTemplate: 'alpha.md' }],
+    deletes: [], conflicts: [],
+  }
+  const m = applyPlan({ plan: p, projectDir: dir, engines: ['claude'], modules: ['alpha'], deliveryId: 'd', completedAt: 't' })
+  assert.ok(m.files.some((f) => f.targetPath === '.claude/rules/alpha.md' && f.writtenHash === 'h1'),
+    'materialized file present in manifest')
+})
+
+test('TOCTOU: changed file aborts whole apply, manifest not published', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'glue-'))
+  mkdirSync(join(dir, '.claude', 'rules'), { recursive: true })
+  writeFileSync(join(dir, '.claude/rules/alpha.md'), 'CHANGED after planning\n')
+  const p = { writes: [{ targetPath: '.claude/rules/alpha.md', plannedHash: hashContent('new\n'), content: 'new\n', sourcePack: 'glue-rules', sourceTemplate: 'alpha.md', packVersion: '0.2.0', expectedCurrentHash: hashContent('what planner saw\n') }], materialized: [], deletes: [], conflicts: [] }
+  assert.throws(() => applyPlan({ plan: p, projectDir: dir, engines: ['claude'], modules: ['alpha'], deliveryId: 'd', completedAt: 't' }), /TOCTOU|changed|abort/)
+  assert.equal(existsSync(join(dir, '.glue', 'manifest.json')), false, 'manifest must not be published on abort')
 })
 ```
 
@@ -832,7 +903,7 @@ test('TOCTOU: file changed after planning is not clobbered', () => {
 
 - [ ] **Step 3: Реализовать `writer.mjs`**
 
-Для каждого write: `safeTargetPath`; если файл существует — `lstatSync`: при symlink → throw (path-safety); перечитать текущий хеш и сверить с `expectedCurrentHash` из плана (TOCTOU) — при расхождении прекратить по файлу без затирания; иначе записать; собрать запись манифеста (`writtenHash` = хеш записанного). Удалить `deletes` (с той же TOCTOU-сверкой). После всех — `writeManifest` (атомарно, последним). Вернуть манифест.
+Порядок: (1) для каждого `write` и `delete` — `safeTargetPath`; если файл существует — `lstatSync`: symlink → **throw/abort**; перечитать текущий хеш и сверить с `expectedCurrentHash` (TOCTOU); **при любом расхождении — throw (abort всего применения), манифест не публикуется**. (2) Все TOCTOU-сверки пройдены → записать `writes`, удалить `deletes`. (3) Собрать `files[]` манифеста = **записи `writes`** (`writtenHash` = хеш записанного) **∪ записи `materialized`** (`writtenHash` = их `plannedHash`, файл уже на диске). (4) `writeManifest` атомарно последним. Вернуть манифест. (Сверки можно сделать пакетом до любой записи — тогда abort гарантированно до мутаций; но даже при пофайловой проверке abort прекращает дальнейшее и не публикует манифест.)
 
 - [ ] **Step 4: Запустить — PASS**
 
@@ -880,7 +951,7 @@ test('init lays out rules + instruction + manifest from fixture pack', () => {
 
 - [ ] **Step 2: Запустить — FAIL**
 
-- [ ] **Step 3: Реализовать `init.mjs`** — `discoverPacks(registryPath)` → `mergePackRegistries` → `resolveDependencies` → `plan` → если конфликты и не force, вернуть их без записи → иначе `applyPlan`. `claude` всегда в engines.
+- [ ] **Step 3: Реализовать `init.mjs`** — `discoverPacks(registryPath)` → `mergePackRegistries` → `resolveDependencies` → `plan({packs, selected, engines, projectDir, prevManifest: readManifest(projectDir), force})` → если `conflicts.length && !force` — вернуть `{manifest: null, conflicts}` **без записи** → иначе `applyPlan({plan, ...})` и вернуть `{manifest, conflicts: []}`. `force` берётся из флага и прокидывается в `plan`. `claude` всегда в engines.
 
 - [ ] **Step 4: Добавить dispatch в `bin/glue.mjs`** — `const [cmd] = process.argv.slice(2)`; `if (cmd === 'init') { ...parse flags..., runInit(...), print JSON }`. Сохранить ветку `session-start` (хук, Task 2.8).
 
@@ -906,7 +977,7 @@ git commit -m "feat(glue-core): glue init command wiring"
 - Consumes: `readManifest`, `hashContent`, `discoverPacks`.
 - Produces: SessionStart-вывод. Логика: `nativeDeliveryValid(projectDir, packs)` → если true: **не инжектить** тело (нативная раскладка активна); если false: **инжектить** тело (fallback 0.1.1) + диагностика stderr.
 
-**`nativeDeliveryValid` (полная валидация, акцент 4):** манифест есть И `schemaVersion` поддерживается И `status == complete` И обязательные Claude-targets (`.claude/rules/*` из манифеста) присутствуют на диске И их текущие хеши == `writtenHash` И `packVersion` в манифесте соответствует актуально установленным версиям паков. Иначе — false (fallback).
+**`nativeDeliveryValid` (полная валидация, акцент 4):** манифест есть И `schemaVersion` поддерживается И `status == complete` И обязательные Claude-targets присутствуют на диске И их текущие хеши == `writtenHash` И `packVersion` в манифесте соответствует актуально установленным версиям паков. **Обязательные Claude-targets = корневой `CLAUDE.md` И все `.claude/rules/*` из манифеста** (не только правила — без инструкц-файла `CLAUDE.md` нативная доставка неполна). Иначе — false (fallback).
 
 **Инвариант (акцент 5):** хук всегда выдаёт один из двух путей — нативная доставка валидна → правила уже в `.claude/rules` (нативно); невалидна → fallback инъекция. **Никогда не выключены оба.**
 
@@ -931,6 +1002,22 @@ test('complete manifest with matching hashes → native valid', () => {
 })
 test('manifest present but file hash drifted → fallback', () => {
   // writtenHash != current → false
+})
+test('manifest complete and rules present but CLAUDE.md missing → fallback', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'glue-'))
+  mkdirSync(join(dir, '.claude', 'rules'), { recursive: true })
+  mkdirSync(join(dir, '.glue'), { recursive: true })
+  const rule = '# r\n'
+  writeFileSync(join(dir, '.claude/rules/alpha.md'), rule)
+  // манифест complete, но среди обязательных targets — CLAUDE.md, которого на диске нет
+  const man = { schemaVersion: '1', status: 'complete', engines: ['claude'], modules: ['alpha'],
+    files: [
+      { targetPath: '.claude/rules/alpha.md', writtenHash: hashContent(rule), packVersion: '0.2.0', producerPack: 'glue-rules', sourceTemplate: 'alpha.md' },
+      { targetPath: 'CLAUDE.md', writtenHash: 'whatever', packVersion: '0.2.0', producerPack: 'glue-rules', sourceTemplate: 'CLAUDE.md.tmpl' },
+    ] }
+  writeFileSync(join(dir, '.glue/manifest.json'), JSON.stringify(man))
+  assert.equal(nativeDeliveryValid(dir, [{ name: 'glue-rules', version: '0.2.0' }]), false,
+    'missing CLAUDE.md must force fallback')
 })
 test('invariant: native invalid implies fallback path taken (never both off)', () => {
   // при false хук возвращает payload с additionalContext (инъекция), не пустоту
@@ -994,14 +1081,49 @@ git add plugins/glue-core/test/integration.test.mjs
 git commit -m "test(glue-core): integration — fallback→init→native→drift→fallback"
 ```
 
-**После merge PR2:** тег `glue-core--v0.2.0` на пост-merge HEAD + push.
+---
+
+### Task 2.10: Удалить legacy fallback-слой `glue-rules` (после хука)
+
+**Files:**
+- Delete: `plugins/glue-rules/rules/commit-discipline.md`, `plugins/glue-rules/rules/secret-hygiene.md`
+- Modify: `plugins/glue-rules/test/templates.test.mjs` (снять тест fallback-совместимости)
+- Modify: `plugins/glue-rules/.claude-plugin/plugin.json` (bump `0.2.1`)
+
+**Контекст:** этот шаг — в **PR2** (а не PR1), потому что только после переключения core-хука на нативную доставку (Task 2.8) старый формат `rules/*.md` больше не нужен. До этого момента он держал fallback старого core. Удаляется как часть PR2, где новый хук уже не зависит от него.
+
+- [ ] **Step 1: Удалить legacy-файлы и тест совместимости**
+
+```bash
+git rm plugins/glue-rules/rules/commit-discipline.md plugins/glue-rules/rules/secret-hygiene.md
+```
+Снять тест `fallback layer preserved...` из `templates.test.mjs`.
+
+- [ ] **Step 2: Bump `glue-rules` → 0.2.1**
+
+`plugins/glue-rules/.claude-plugin/plugin.json`: `"version": "0.2.1"` (legacy-слой удалён, нативная доставка — основной путь).
+
+- [ ] **Step 3: Прогнать тесты пака — PASS**
+
+Run: `node --test plugins/glue-rules/test/`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add plugins/glue-rules
+git commit -m "chore(glue-rules): drop legacy fallback rules after native delivery cutover"
+```
+
+(Тег `glue-rules--v0.2.1` ставится вместе с тегом core после merge PR2.)
+
+**После merge PR2:** теги `glue-core--v0.2.0` и `glue-rules--v0.2.1` на пост-merge HEAD + push.
 
 ---
 
 ## Зависимость и порядок (акцент 1) — сводка
 
-1. **PR1 `glue-rules` 0.2.0** merge → тег `glue-rules--v0.2.0` push. `glue-core` 0.1.1 не тронут → fallback-инъекция жива.
-2. **PR2 `glue-core` 0.2.0** разрабатывается на фикстуре-паке (не зависит от установки); резолвит реальный контракт `glue-rules` только в интеграционном прогоне. Merge → тег `glue-core--v0.2.0` push.
+1. **PR1 `glue-rules` 0.2.0** merge → тег `glue-rules--v0.2.0` push. Новый контракт+10 модулей в `rules/templates/`; **старые `rules/*.md` сохранены** → `glue-core` 0.1.1 нерекурсивный fallback продолжает их инжектить (доставка не прервана).
+2. **PR2 `glue-core` 0.2.0** разрабатывается на фикстуре-паке (не зависит от установки); резолвит реальный контракт `glue-rules` только в интеграционном прогоне. Включает Task 2.10 — удаление legacy `rules/*.md` (bump `glue-rules` 0.2.1) уже после переключения хука. Merge → теги `glue-core--v0.2.0` + `glue-rules--v0.2.1` push.
 3. Установка/обновление в тест-проекте: `claude plugin update` → 0.2.0; затем `glue init --modules ... --engines claude` → раскладка; следующая сессия (`/clear`) — хук видит валидный манифест → нативная доставка, инъекция снята.
 
 **Инвариант непрерывности (акцент 5):** на каждом промежуточном HEAD — либо старый хук инжектит (PR1, до core-0.2.0), либо новый хук инжектит-или-нативно (PR2). Состояния «оба пути выключены» не существует: `nativeDeliveryValid == false` всегда влечёт fallback-инъекцию.
@@ -1020,8 +1142,15 @@ git commit -m "test(glue-core): integration — fallback→init→native→drift
 | TOCTOU | хеш изменился после планирования → не затирать | 2.6 |
 | переход доставки | fallback→init→native→drift→fallback | 2.8, 2.9 |
 | инвариант | native-invalid ⇒ fallback (никогда оба off) | 2.8 |
+| fallback-совместимость | старые `rules/*.md` сохранены до cutover (дефект-фикс 1) | 1.2 |
+| recovery в манифест | `materialized` входит в `files[]` (дефект-фикс 2) | 2.5, 2.6 |
+| TOCTOU abort | манифест не публикуется при расхождении (дефект-фикс 3) | 2.6 |
+| force | conflict→write, dropped-edited→delete (дефект-фикс 4) | 2.5 |
+| CLAUDE.md в хуке | отсутствие → fallback (дефект-фикс 5) | 2.8 |
 
 ## Self-Review
 
 - **Spec coverage:** контракт пака (1.1) ✓; манифест+атомарность (2.4) ✓; конфликт+recovery+удаление (2.5) ✓; TOCTOU (2.6) ✓; path-safety (2.2/2.6) ✓; module-identity (2.3) ✓; условный хук без окна (2.8) ✓; 10 модулей без retro (1.1/1.2) ✓; `.invoker`-аудит (1.2) ✓; порядок 2 PR (сводка) ✓.
+- **Дефект-фиксы адвизора (контрактные):** (1) PR1 сохраняет fallback-слой, legacy-уборка в PR2/Task 2.10 ✓; (2) recovery-файлы (`materialized`) входят в манифест ✓; (3) TOCTOU → abort без публикации манифеста ✓; (4) `force` в сигнатуре `plan` + проброс в `init` ✓; (5) `CLAUDE.md` среди обязательных хук-targets ✓.
+- **Дословные тесты (по требованию адвизора):** fallback-совместимость (1.2), recovery→manifest (2.5+2.6), TOCTOU-abort (2.6), force write/delete (2.5), CLAUDE.md-в-хуке (2.8). Прочие кейсы матрицы — named + helper-описание, раскрываются при реализации.
 - Перенос дословный (resolve/blocks) — код показан; новый код (registry/planner/writer/manifest/hook) — сигнатуры и реализации заданы.
