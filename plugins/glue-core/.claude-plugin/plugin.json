@@ -1,5 +1,5 @@
 {
   "name": "glue-core",
-  "version": "0.2.0",
-  "description": "механизм раскладки правил (glue init) + условный хук"
+  "version": "0.2.1",
+  "description": "механизм раскладки правил (glue init) + условный хук + команда /glue-core:init"
 }
