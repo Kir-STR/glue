@@ -35,3 +35,11 @@ test('TOCTOU: changed file aborts whole apply, manifest not published', () => {
   assert.throws(() => applyPlan({ plan: p, projectDir: dir, engines: ['claude'], modules: ['alpha'], deliveryId: 'd', completedAt: 't' }), /TOCTOU|changed|abort/)
   assert.equal(existsSync(join(dir, '.glue', 'manifest.json')), false, 'manifest must not be published on abort')
 })
+
+test('TOCTOU: target absent but expectedCurrentHash non-null aborts, manifest not published', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'glue-'))
+  // targetPath does NOT exist on disk — file was deleted between planning and apply
+  const p = { writes: [{ targetPath: '.claude/rules/beta.md', plannedHash: hashContent('new\n'), content: 'new\n', sourcePack: 'glue-rules', sourceTemplate: 'beta.md', packVersion: '0.2.0', expectedCurrentHash: hashContent('what planner saw\n') }], materialized: [], deletes: [], conflicts: [] }
+  assert.throws(() => applyPlan({ plan: p, projectDir: dir, engines: ['claude'], modules: ['beta'], deliveryId: 'd', completedAt: 't' }), /TOCTOU|abort/)
+  assert.equal(existsSync(join(dir, '.glue', 'manifest.json')), false, 'manifest must not be published on abort')
+})

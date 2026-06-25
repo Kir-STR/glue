@@ -44,6 +44,16 @@ export function applyPlan({ plan, projectDir, engines, modules, deliveryId, comp
           )
         }
       }
+    } else {
+      // Target is absent — current hash is null.
+      // If planner saw a file there (non-null expectedCurrentHash), it was
+      // deleted/moved between planning and apply: TOCTOU mismatch → abort.
+      if (entry.expectedCurrentHash !== null && entry.expectedCurrentHash !== undefined) {
+        throw new Error(
+          `TOCTOU abort: file absent but hash expected since planning: ${entry.targetPath} ` +
+          `(expected ${entry.expectedCurrentHash}, got null)`
+        )
+      }
     }
   }
 
@@ -66,6 +76,15 @@ export function applyPlan({ plan, projectDir, engines, modules, deliveryId, comp
             `(expected ${entry.expectedCurrentHash}, got ${currentHash})`
           )
         }
+      }
+    } else {
+      // Target is absent — current hash is null.
+      // If planner expected it to exist (non-null expectedCurrentHash), abort.
+      if (entry.expectedCurrentHash !== null && entry.expectedCurrentHash !== undefined) {
+        throw new Error(
+          `TOCTOU abort: file absent but hash expected since planning: ${entry.targetPath} ` +
+          `(expected ${entry.expectedCurrentHash}, got null)`
+        )
       }
     }
   }
