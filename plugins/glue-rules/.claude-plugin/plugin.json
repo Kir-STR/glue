@@ -3,6 +3,6 @@
   "version": "0.2.1",
   "description": "П1 контент-пак: декларативный контракт + 10 модулей-правил (раскладка через glue init). Легаси-слой rules/*.md удалён; primary delivery — native glue init.",
   "dependencies": [
-    { "name": "glue-core", "version": "~0.1.0" }
+    { "name": "glue-core", "version": "~0.2.0" }
   ]
 }
