@@ -21,7 +21,6 @@ export function filterModuleBlocks(text, keepIds) {
     }
     if (CLOSE.test(line)) {
       if (openId === null) throw new Error('stray <!-- /module --> with no open block')
-      if (skipping) out.push('') // пустая строка-разделитель вместо удалённого блока
       openId = null
       skipping = false
       continue // маркер не пишем
