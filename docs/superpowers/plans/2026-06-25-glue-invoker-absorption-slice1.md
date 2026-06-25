@@ -1154,3 +1154,9 @@ git commit -m "chore(glue-rules): drop legacy fallback rules after native delive
 - **Дефект-фиксы адвизора (контрактные):** (1) PR1 сохраняет fallback-слой, legacy-уборка в PR2/Task 2.10 ✓; (2) recovery-файлы (`materialized`) входят в манифест ✓; (3) TOCTOU → abort без публикации манифеста ✓; (4) `force` в сигнатуре `plan` + проброс в `init` ✓; (5) `CLAUDE.md` среди обязательных хук-targets ✓.
 - **Дословные тесты (по требованию адвизора):** fallback-совместимость (1.2), recovery→manifest (2.5+2.6), TOCTOU-abort (2.6), force write/delete (2.5), CLAUDE.md-в-хуке (2.8). Прочие кейсы матрицы — named + helper-описание, раскрываются при реализации.
 - Перенос дословный (resolve/blocks) — код показан; новый код (registry/planner/writer/manifest/hook) — сигнатуры и реализации заданы.
+
+## Deviations log
+
+Отклонения, возникшие по ходу исполнения (pr-policy § «Sync spec/plan при отклонениях»).
+
+- **[tooling] Verification-команда `node --test`.** План задаёт директорную форму `node --test plugins/<pack>/test/` (Task 1.4 Step 2, Task 2.9 Step 3, сводка Verification). На Node v24.16.0 (Windows) эта форма трактует путь как один тест-файл и падает (`tests 1 / fail 1`), не выполняя discovery. Принятый стандарт по всему срезу: glob-форма `node --test "plugins/<pack>/test/*.mjs"`. Подтверждено механически в worktree PR1. Причина — поведение test-runner'а Node 24, не предусмотренное планом; реализация и поведение пакетов не затронуты. Применять ту же форму в PR2.
