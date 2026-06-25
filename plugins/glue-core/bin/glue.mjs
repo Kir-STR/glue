@@ -15,6 +15,8 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { nativeDeliveryValid } from '../lib/init.mjs';
+import { discoverPacks } from '../lib/discovery.mjs';
 
 const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
 const REGISTRY = join(HOME, '.claude', 'plugins', 'installed_plugins.json');
@@ -71,6 +73,30 @@ async function runInitCmd() {
 
 // ── session-start (hook) ─────────────────────────────────────────────────────
 function runSessionStart() {
+  // --- 0. Условный переход native ↔ fallback (Task 2.8) ---------------------
+  // Если нативная раскладка правил полностью валидна (.claude/rules + CLAUDE.md
+  // совпадают с манифестом, версии паков актуальны) — тело правил НЕ инжектим:
+  // правила уже лежат нативно. Иначе — fallback на инъекцию тела (ниже).
+  // Инвариант: false ВСЕГДА ведёт в fallback — третьего пути нет, оба канала
+  // доставки одновременно не выключены.
+  let nativePacks = [];
+  try {
+    nativePacks = discoverPacks().map((p) => ({ name: p.name, version: p.version }));
+  } catch (e) {
+    diag(`дискавери паков для native-проверки не удалось: ${e.message} — fallback`);
+    nativePacks = [];
+  }
+  if (nativeDeliveryValid(PROJECT_DIR, nativePacks)) {
+    diag('native delivery active');
+    const context =
+      '<glue>\nGlue: нативная раскладка правил активна (.claude/rules). ' +
+      'Тело правил не инжектится.\n</glue>';
+    const payload = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: context } };
+    process.stdout.write(JSON.stringify(payload));
+    process.exit(0);
+  }
+  diag('fallback: native delivery not validated');
+
   // --- 1. Резолв установленных контент-паков из реестра ---------------------
   // Формат реестра (v2): { version, plugins: { "name@marketplace": [ {installPath, version, lastUpdated, ...} ] } }
   // Контент-пак = ключ, чьё имя начинается на "glue-" и != "glue-core".
