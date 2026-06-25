@@ -8,7 +8,7 @@
     {
       "name": "glue-core",
       "source": "./plugins/glue-core",
-      "description": "Glue core: команда glue, собирающая видимость артефактов из установленных контент-паков (MVP: чтение rules из glue-* паков).",
+      "description": "Glue core: механизм нативной раскладки правил из контент-паков (glue init) + условный SessionStart-хук (нативная доставка либо fallback-инъекция).",
       "author": { "name": "Kirill Bogdanov" }
     },
     {
