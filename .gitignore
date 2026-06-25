@@ -2,6 +2,10 @@
 .claude/settings.local.json
 .claude/worktrees/
 
+# subagent-driven-development scratch (briefs, reports, review diffs, ledger)
+# worktree-relative path, not covered by .claude/worktrees/
+.superpowers/
+
 # invoker retro working state (gitignored per .claude/rules/retro-loop.md)
 .invoker/ideas_4_rules.md
 .invoker/retro/
