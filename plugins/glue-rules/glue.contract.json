@@ -1,0 +1,6 @@
+{
+  "contractVersion": "1",
+  "registry": "rules/registry.json",
+  "templatesDir": "rules/templates",
+  "instructionsDir": "rules/instructions"
+}
