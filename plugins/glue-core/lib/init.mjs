@@ -1,8 +1,11 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { discoverPacks, mergePackRegistries } from './discovery.mjs'
 import { resolveDependencies } from './resolve.mjs'
 import { plan } from './planner.mjs'
 import { applyPlan } from './writer.mjs'
-import { readManifest } from './manifest.mjs'
+import { readManifest, SCHEMA_VERSION } from './manifest.mjs'
+import { hashContent } from './hash.mjs'
+import { safeTargetPath } from './paths.mjs'
 
 /**
  * runInit — orchestrates discover → plan → (conflict gate) → apply.
@@ -53,4 +56,71 @@ export function runInit({ selected, engines, projectDir, force, now, registryPat
   })
 
   return { manifest, conflicts: [] }
+}
+
+// A manifest file entry is a mandatory Claude-target when it targets the root
+// CLAUDE.md or any file under .claude/rules/.
+function isMandatoryClaudeTarget(targetPath) {
+  return targetPath === 'CLAUDE.md' || targetPath.startsWith('.claude/rules/')
+}
+
+/**
+ * nativeDeliveryValid — predicate gating the conditional SessionStart hook.
+ *
+ * Returns true ONLY when native rule delivery (.claude/rules + CLAUDE.md) is
+ * fully validated; otherwise false → the hook MUST fall back to body-injection.
+ * Fallback is the safe default: any thrown error during validation → false.
+ *
+ * All of the following must hold:
+ *  - manifest present and non-null,
+ *  - manifest.schemaVersion === supported SCHEMA_VERSION,
+ *  - manifest.status === 'complete',
+ *  - every mandatory Claude-target (root CLAUDE.md + each .claude/rules/* entry)
+ *    exists on disk and its current hash equals the manifest writtenHash,
+ *  - each manifest file's producerPack/packVersion matches an installed pack
+ *    (same name + version) in `packs` (stale delivery → false).
+ *
+ * @param {string} projectDir
+ * @param {Array<{name:string, version:string}>} packs
+ * @returns {boolean}
+ */
+export function nativeDeliveryValid(projectDir, packs) {
+  try {
+    const manifest = readManifest(projectDir)
+    if (!manifest) return false
+    if (manifest.schemaVersion !== SCHEMA_VERSION) return false
+    if (manifest.status !== 'complete') return false
+
+    const files = Array.isArray(manifest.files) ? manifest.files : []
+
+    // Installed pack versions by name (for stale-delivery detection).
+    const installedVersion = new Map((packs ?? []).map((p) => [p.name, p.version]))
+
+    let sawClaudeMd = false
+
+    for (const f of files) {
+      if (!f || typeof f.targetPath !== 'string') return false
+
+      // packVersion must match the actually-installed pack version.
+      if (installedVersion.get(f.producerPack) !== f.packVersion) return false
+
+      if (f.targetPath === 'CLAUDE.md') sawClaudeMd = true
+
+      // Mandatory Claude-targets must be on disk and hash-match.
+      if (isMandatoryClaudeTarget(f.targetPath)) {
+        const abs = safeTargetPath(projectDir, f.targetPath)
+        if (!existsSync(abs)) return false
+        if (hashContent(readFileSync(abs, 'utf8')) !== f.writtenHash) return false
+      }
+    }
+
+    // Defect-fix 5: a CLAUDE.md target absent from disk is caught above; but if
+    // the manifest carries no CLAUDE.md entry at all, native delivery is
+    // incomplete for the claude engine → fallback.
+    if (!sawClaudeMd) return false
+
+    return true
+  } catch {
+    return false
+  }
 }
