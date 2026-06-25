@@ -14,7 +14,7 @@
     {
       "name": "glue-rules",
       "source": "./plugins/glue-rules",
-      "description": "Glue content pack П1 «Правила и знания»: правила проекта как видимые артефакты (MVP: rules/*.md).",
+      "description": "П1 контент-пак: декларативный контракт + 10 модулей-правил для раскладки через glue init",
       "author": { "name": "Kirill Bogdanov" }
     }
   ]
