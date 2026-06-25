@@ -15,7 +15,7 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { nativeDeliveryValid } from '../lib/init.mjs';
+import { nativeDeliveryValid, runInit } from '../lib/init.mjs';
 import { discoverPacks } from '../lib/discovery.mjs';
 
 const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
@@ -29,7 +29,7 @@ const [cmd] = process.argv.slice(2);
 
 if (cmd === 'init') {
   // glue init --modules a,b --engines claude[,agents,gemini] [--force]
-  await runInitCmd();
+  runInitCmd();
 } else {
   // session-start (default / legacy): runs SessionStart hook logic.
   // Preserved verbatim for backward compatibility; Task 2.8 may modify it.
@@ -37,9 +37,7 @@ if (cmd === 'init') {
 }
 
 // ── init subcommand ──────────────────────────────────────────────────────────
-async function runInitCmd() {
-  const { runInit } = await import('../lib/init.mjs');
-
+function runInitCmd() {
   const args = process.argv.slice(3);
   let modulesArg = '';
   let enginesArg = 'claude';
