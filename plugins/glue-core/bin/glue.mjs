@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { nativeDeliveryValid, runInit } from '../lib/init.mjs';
 import { discoverPacks } from '../lib/discovery.mjs';
+import { deliveryStatus, listModules } from '../lib/report.mjs';
 
 const HOME = process.env.HOME || process.env.USERPROFILE || homedir();
 const REGISTRY = join(HOME, '.claude', 'plugins', 'installed_plugins.json');
@@ -28,8 +29,14 @@ const diag = (msg) => process.stderr.write(`[glue] ${msg}\n`);
 const [cmd] = process.argv.slice(2);
 
 if (cmd === 'init') {
-  // glue init --modules a,b --engines claude[,agents,gemini] [--force]
+  // glue init --modules a,b --engines claude[,codex,gemini] [--force]
   runInitCmd();
+} else if (cmd === 'status') {
+  // glue status → delivery observability report as JSON
+  runStatusCmd();
+} else if (cmd === 'list') {
+  // glue list [--json] → module list as JSON
+  runListCmd();
 } else {
   // session-start (default / legacy): runs SessionStart hook logic.
   // Preserved verbatim for backward compatibility; Task 2.8 may modify it.
@@ -66,6 +73,23 @@ function runInitCmd() {
   if (manifest === null) {
     process.exit(1);
   }
+  process.exit(0);
+}
+
+// ── status subcommand ────────────────────────────────────────────────────────
+function runStatusCmd() {
+  const packs = discoverPacks(REGISTRY);
+  const result = deliveryStatus(PROJECT_DIR, packs);
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  process.exit(0);
+}
+
+// ── list subcommand ──────────────────────────────────────────────────────────
+function runListCmd() {
+  // --json flag accepted (always emits JSON in this version)
+  const packs = discoverPacks(REGISTRY);
+  const modules = listModules(packs);
+  process.stdout.write(JSON.stringify(modules, null, 2) + '\n');
   process.exit(0);
 }
 
