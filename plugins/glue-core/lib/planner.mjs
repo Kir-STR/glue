@@ -9,9 +9,11 @@ import { safeSourcePath, safeTargetPath } from './paths.mjs'
 // engine → [instruction template filename, target relative path]
 const ENGINE_INSTRUCTIONS = {
   claude: ['CLAUDE.md.tmpl', 'CLAUDE.md'],
-  agents: ['AGENTS.md.tmpl', 'AGENTS.md'],
+  codex: ['AGENTS.md.tmpl', 'AGENTS.md'],
   gemini: ['GEMINI.md.tmpl', 'GEMINI.md'],
 }
+
+export const KNOWN_ENGINES = Object.keys(ENGINE_INSTRUCTIONS)
 
 // Computes the on-disk hash of a target file, or null if absent.
 function diskHash(projectDir, rel) {
@@ -21,12 +23,14 @@ function diskHash(projectDir, rel) {
 }
 
 // Builds the ordered list of planned targets (rule files + instruction files).
-// Each entry: { targetPath, plannedHash, content, sourcePack, packVersion, sourceTemplate }.
+// Each entry: { targetPath, plannedHash, content, sourcePack, packVersion, sourceTemplate, engine? }.
+// Returns { targets, deliveredEngines }.
 function planTargets({ packs, selected, engines }) {
   const { merged, owner } = mergePackRegistries(packs)
   const byName = new Map(packs.map((p) => [p.name, p]))
   const resolvedIds = resolveDependencies(merged, selected)
   const targets = []
+  const deliveredEngines = new Set()
 
   // 1. Rule files — one per template filename per resolved module.
   for (const id of resolvedIds) {
@@ -66,17 +70,19 @@ function planTargets({ packs, selected, engines }) {
         sourcePack: pack.name,
         packVersion: pack.version,
         sourceTemplate: tmpl,
+        engine,
       })
+      deliveredEngines.add(engine)
     }
   }
 
-  return targets
+  return { targets, deliveredEngines: [...deliveredEngines] }
 }
 
 // Pure planner: reads the disk for current hashes, decides writes/materialized/
 // deletes/conflicts per the dictated conflict algorithm. Writes NOTHING.
 export function plan({ packs, selected, engines, projectDir, prevManifest, force = false }) {
-  const targets = planTargets({ packs, selected, engines })
+  const { targets, deliveredEngines } = planTargets({ packs, selected, engines })
 
   // prevManifest.files indexed by targetPath → writtenHash.
   const prevFiles = new Map((prevManifest?.files ?? []).map((f) => [f.targetPath, f]))
@@ -140,5 +146,5 @@ export function plan({ packs, selected, engines, projectDir, prevManifest, force
     }
   }
 
-  return { writes, materialized, deletes, conflicts }
+  return { writes, materialized, deletes, conflicts, deliveredEngines }
 }

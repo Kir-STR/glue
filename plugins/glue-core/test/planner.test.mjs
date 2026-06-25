@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { plan } from '../lib/planner.mjs'
+import { plan, KNOWN_ENGINES } from '../lib/planner.mjs'
 import { hashContent } from '../lib/hash.mjs'
 
 const FIXTURE_ROOT = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'pack-a')
@@ -143,4 +143,30 @@ test('force turns a hand-edited dropped file into a delete', () => {
   assert.ok(noForce.conflicts.some((c) => c.targetPath === stale))
   const forced = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude'], projectDir: proj, prevManifest: prev, force: true })
   assert.ok(forced.deletes.some((d) => d.targetPath === stale), 'force → delete')
+})
+
+// --- Task A: engine contract ---
+
+test('KNOWN_ENGINES exported and contains claude, codex, gemini', () => {
+  assert.ok(Array.isArray(KNOWN_ENGINES), 'KNOWN_ENGINES is array')
+  assert.ok(KNOWN_ENGINES.includes('claude'), 'claude present')
+  assert.ok(KNOWN_ENGINES.includes('codex'), 'codex present')
+  assert.ok(KNOWN_ENGINES.includes('gemini'), 'gemini present')
+  assert.ok(!KNOWN_ENGINES.includes('agents'), 'old agents key absent')
+})
+
+test('codex engine — plan deliveredEngines contains codex when AGENTS.md.tmpl present', () => {
+  const proj = newProj()
+  const r = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude', 'codex'], projectDir: proj, prevManifest: null, force: false })
+  assert.ok(Array.isArray(r.deliveredEngines), 'deliveredEngines is array')
+  assert.ok(r.deliveredEngines.includes('codex'), 'codex in deliveredEngines')
+  assert.ok(r.deliveredEngines.includes('claude'), 'claude in deliveredEngines')
+  // AGENTS.md target is in writes
+  assert.ok(r.writes.some((w) => w.targetPath === 'AGENTS.md'), 'AGENTS.md in writes')
+})
+
+test('gemini engine — not in deliveredEngines when GEMINI.md.tmpl absent from fixture', () => {
+  const proj = newProj()
+  const r = plan({ packs: fixturePacks(), selected: ['alpha'], engines: ['claude', 'gemini'], projectDir: proj, prevManifest: null, force: false })
+  assert.ok(!r.deliveredEngines.includes('gemini'), 'gemini absent from deliveredEngines (no template)')
 })
