@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { discoverPacks, mergePackRegistries } from './discovery.mjs'
 import { resolveDependencies } from './resolve.mjs'
-import { plan } from './planner.mjs'
+import { plan, KNOWN_ENGINES } from './planner.mjs'
 import { applyPlan } from './writer.mjs'
 import { readManifest, SCHEMA_VERSION } from './manifest.mjs'
 import { hashContent } from './hash.mjs'
@@ -22,6 +22,13 @@ import { safeTargetPath } from './paths.mjs'
 export function runInit({ selected, engines, projectDir, force, now, registryPath }) {
   // Ensure claude is always in engines
   const effectiveEngines = engines.includes('claude') ? engines : ['claude', ...engines]
+
+  // Validate all engines are known before touching disk
+  for (const engine of effectiveEngines) {
+    if (!KNOWN_ENGINES.includes(engine)) {
+      throw new Error(`Unknown engine: ${engine}. Known: ${KNOWN_ENGINES.join(', ')}`)
+    }
+  }
 
   // 1. Discover installed content packs
   const packs = discoverPacks(registryPath)
@@ -46,10 +53,11 @@ export function runInit({ selected, engines, projectDir, force, now, registryPat
   }
 
   // 5. Apply plan (write files, build manifest)
+  // Use deliveredEngines (engines whose .tmpl actually exists) not raw effectiveEngines
   const manifest = applyPlan({
     plan: planResult,
     projectDir,
-    engines: effectiveEngines,
+    engines: planResult.deliveredEngines,
     modules: resolvedIds,
     deliveryId: now,
     completedAt: now,
