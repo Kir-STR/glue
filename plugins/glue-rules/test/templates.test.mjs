@@ -28,11 +28,10 @@ test('no .invoker/ or retro-infra references survive in slice-1 templates', () =
   }
 })
 
-import { existsSync as exists2 } from 'node:fs'
 test('fallback layer preserved for old core 0.1.1 (top-level rules/*.md kept)', () => {
   // старый core читает rules/ нерекурсивно; эти файлы должны остаться до PR2 cutover
-  assert.ok(exists2(join(PACK, 'rules', 'commit-discipline.md')), 'commit-discipline kept')
-  assert.ok(exists2(join(PACK, 'rules', 'secret-hygiene.md')), 'secret-hygiene kept')
+  assert.ok(existsSync(join(PACK, 'rules', 'commit-discipline.md')), 'commit-discipline kept')
+  assert.ok(existsSync(join(PACK, 'rules', 'secret-hygiene.md')), 'secret-hygiene kept')
   // новые модули — в подкаталоге, нерекурсивный fallback их не подхватит (нет дубля)
-  assert.ok(exists2(join(PACK, 'rules', 'templates', 'operator-gate.md')))
+  assert.ok(existsSync(join(PACK, 'rules', 'templates', 'operator-gate.md')))
 })
