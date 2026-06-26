@@ -21,6 +21,11 @@ test('filterModuleBlocks с пустым keep вырезает все блоки
   assert.equal(filterModuleBlocks(TXT, []), ['head', 'tail'].join('\n'))
 })
 
+test('filterModuleBlocks без блоков возвращает текст без изменений', () => {
+  const plain = ['line 1', 'line 2', 'line 3'].join('\n')
+  assert.equal(filterModuleBlocks(plain, ['a']), plain)
+})
+
 test('filterModuleBlocks бросает на вложенный блок', () => {
   const nested = '<!-- module:a -->\n<!-- module:b -->\nx\n<!-- /module -->\n<!-- /module -->'
   assert.throws(() => filterModuleBlocks(nested, ['a', 'b']), /nested module block/)
