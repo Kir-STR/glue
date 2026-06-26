@@ -8,10 +8,13 @@ import { loadContract, loadBundle, PLUGIN_ROOT } from './bundle.mjs'
 
 // Хеш файла на диске под безопасным targetPath, либо null (нет/ошибка пути).
 function diskHash(projectDir, rel) {
-  let abs
-  try { abs = safeTargetPath(projectDir, rel) } catch { return null }
-  if (!existsSync(abs)) return null
-  return hashContent(readFileSync(abs, 'utf8'))
+  try {
+    const abs = safeTargetPath(projectDir, rel)
+    if (!existsSync(abs)) return null
+    return hashContent(readFileSync(abs, 'utf8'))
+  } catch {
+    return null
+  }
 }
 
 // Read-only отчёт о состоянии доставки. Не бросает: деградирует через reason/errors.
