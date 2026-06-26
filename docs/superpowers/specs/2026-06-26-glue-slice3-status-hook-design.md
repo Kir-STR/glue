@@ -83,9 +83,10 @@ runSessionStart(projectDir) → { stdout: string, stderr: string, exitCode: numb
 - **native валиден** (`nativeDeliveryValid`) → `{ stdout: '{}', stderr: '', exitCode: 0 }`. Ноль `additionalContext`, ноль дубля, ноль шума (правила в `.claude/rules`, Claude читает сам).
 - **native невалиден** → fallback:
   - **выбор модулей (R1):**
-    - `m = readManifest`; если `m` читаем **и** `schemaVersion === '1'` **и** `resolveDependencies(registry, m.modules ?? [])` успешно → эти resolved modules (в т.ч. `m.modules === []` → **пустой набор**, не defaults);
-    - иначе (отсутствует/corrupt/unsupported/неразрешимо) → resolved **defaults** (`default:true` + их `dependsOn`);
+    - `m = readManifest`; если `m` **usable** (`isUsablePrevManifest(m)` — наш формат и наш `producerPack`) **и** `resolveDependencies(registry, m.modules ?? [])` успешно → эти resolved modules (в т.ч. `m.modules === []` → **пустой набор**, не defaults);
+    - иначе (отсутствует/corrupt/unsupported/**foreign**/неразрешимо) → resolved **defaults** (`default:true` + их `dependsOn`);
     - **никогда не инжектить все** неявно;
+    - _(уточнение по финальному ревью среза 3: выбор модулей переведён с «`schemaVersion === '1'`» на `isUsablePrevManifest(m)` — единый критерий «наш usable-манифест» во всём коде; хук больше не читает legacy/foreign-манифест как источник выбора, согласуется с принципом среза 2 «не читать legacy ради миграции». Асимметрия gate↔hook снята.)_
   - тела правил: `buildTargets({registry, modules, engines: [], contract, pluginRoot})` → `targets.filter(t => t.kind === 'rule')` → `content` этих rule-targets (с `engines:[]` инструкц-targets и так нет; фильтр — явная гарантия);
   - `stdout` = SessionStart JSON `{hookSpecificOutput:{hookEventName:'SessionStart', additionalContext}}`, где `additionalContext` = собранные тела правил (если набор пуст → честная заметка «правил не выбрано»);
   - `stderr` = короткая диагностика («native delivery inactive — запусти `/glue:init`»);

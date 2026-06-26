@@ -712,3 +712,11 @@ git commit -m "feat(glue): SessionStart hook + status/session-start dispatch"
 **Shell check:** file-команды — PowerShell/`node`; полный прогон — glob-форма (directory-форма на Node 24 падает, проверено).
 
 **Read-only хук:** `session-start.test` сверяет снимок дерева до/после (Task 3) — инвариант «хук не пишет в проект» проверяется механически ✓.
+
+---
+
+## Deviations log
+
+- **R1 выбор модулей: `schemaVersion === '1'` → `isUsablePrevManifest(m)`** (по финальному whole-branch ревью среза 3, Important #2). Plan/Task 3 предписывали `selectFallbackModules` гейтить по `m && m.schemaVersion === SCHEMA_VERSION`; финальное ревью указало на когерентный разрыв — всюду «это наш манифест?» решается через `isUsablePrevManifest` (producerPack-aware), а хук читал бы legacy/foreign-манифест как источник выбора модулей, что противоречит принципу среза 2 «не читать legacy ради миграции». Решение оператора — **принять**. Код `session-start.mjs` переведён на `isUsablePrevManifest(m)`; добавлен тест (foreign `producerPack: glue-rules` → fallback **defaults**, не modules из foreign-манифеста); design § хук R1 синхронизирован (`docs: spec sync`). Категория: post-review correctness/coherence.
+- **`bin/glue.mjs` `session-start`: truthy-guard `if (r.stdout)` → безусловная запись stdout** (финальное ревью, Important #1, hardening fail-closed контракта хука). Применено отдельным `refactor: simplify pass`. Категория: post-review hardening.
+- Minor findings финального ревью (per-engine drift edge на malformed-манифесте; недостающие assert'ы `mode`/`engines` в `status.test`) — в backlog (срез 4/5), в этом PR не трогаются.
