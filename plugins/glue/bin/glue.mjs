@@ -19,7 +19,9 @@ if (cmd === 'list') {
 } else if (cmd === 'session-start') {
   // SessionStart-хук: native → {}; иначе fallback-инъекция тел правил
   const r = runSessionStart(PROJECT_DIR)
-  if (r.stdout) process.stdout.write(r.stdout)
+  // stdout пишем безусловно: native-кейс отдаёт '{}' — это корректный no-op для Claude Code;
+  // truthy-guard мог бы проглотить валидный ответ на будущем code-path (fail-closed контракт).
+  process.stdout.write(r.stdout)
   if (r.stderr) process.stderr.write(r.stderr)
   process.exit(r.exitCode)
 } else {
