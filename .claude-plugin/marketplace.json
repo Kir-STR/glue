@@ -16,6 +16,12 @@
       "source": "./plugins/glue-rules",
       "description": "П1 контент-пак: декларативный контракт + 10 модулей-правил для раскладки через glue init",
       "author": { "name": "Kirill Bogdanov" }
+    },
+    {
+      "name": "glue",
+      "source": "./plugins/glue",
+      "description": "Glue: нативная раскладка правил и знаний в проект (один плагин, встроенный контент).",
+      "author": { "name": "Kirill Bogdanov" }
     }
   ]
 }
