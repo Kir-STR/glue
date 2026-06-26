@@ -1,8 +1,8 @@
 import { writeFileSync, renameSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-const SCHEMA_VERSION = '1'
-const PRODUCER = 'glue'
+export const SCHEMA_VERSION = '1'
+export const PRODUCER = 'glue'
 const rel = (d) => join(d, '.glue', 'manifest.json')
 
 export function buildManifest({ deliveryId, completedAt, engines, modules, files }) {
@@ -34,5 +34,3 @@ export function writeManifest(projectDir, manifest) {
   writeFileSync(tmp, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
   renameSync(tmp, p)
 }
-
-export { SCHEMA_VERSION, PRODUCER }
