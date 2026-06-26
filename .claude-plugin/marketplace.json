@@ -6,18 +6,6 @@
   },
   "plugins": [
     {
-      "name": "glue-core",
-      "source": "./plugins/glue-core",
-      "description": "Glue core: механизм нативной раскладки правил из контент-паков (команды /glue-core:init и /glue-core:status) + условный SessionStart-хук (нативная доставка либо fallback-инъекция).",
-      "author": { "name": "Kirill Bogdanov" }
-    },
-    {
-      "name": "glue-rules",
-      "source": "./plugins/glue-rules",
-      "description": "П1 контент-пак: декларативный контракт + 10 модулей-правил для раскладки через glue init",
-      "author": { "name": "Kirill Bogdanov" }
-    },
-    {
       "name": "glue",
       "source": "./plugins/glue",
       "description": "Glue: нативная раскладка правил и знаний в проект (один плагин, встроенный контент).",
