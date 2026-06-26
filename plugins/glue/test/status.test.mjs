@@ -96,3 +96,23 @@ test('битый bundle (unknown module в манифесте) → errors неп
     assert.equal(s.engines.claude.status, 'ok') // CLAUDE.md на диске == written; drift не вычислен → ok
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
+
+test('target-путь — директория на диске → не бросает (readFileSync EISDIR)', () => {
+  const d = tmp()
+  try {
+    // CLAUDE.md существует как ФАЙЛ (чтобы манифест был «полным»), а rule-target — ДИРЕКТОРИЯ
+    mkdirSync(join(d, '.claude/rules/operator-gate.md'), { recursive: true }) // путь-файл, но это каталог
+    writeFileSync(join(d, 'CLAUDE.md'), 'C', 'utf8')
+    const m = buildManifest({
+      deliveryId: 'T', completedAt: 'T', engines: ['claude'], modules: ['operator-gate'],
+      files: [
+        { producerPack: 'glue', packVersion: '0.1.0', sourceTemplate: 'operator-gate.md', targetPath: '.claude/rules/operator-gate.md', writtenHash: hashContent('X') },
+        { producerPack: 'glue', packVersion: '0.1.0', sourceTemplate: 'CLAUDE.md.tmpl', targetPath: 'CLAUDE.md', writtenHash: hashContent('C') },
+      ],
+    })
+    writeManifest(d, m)
+    let s
+    assert.doesNotThrow(() => { s = deliveryStatus(d) })
+    assert.ok(Array.isArray(s.missing)) // деградировал, не упал
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
