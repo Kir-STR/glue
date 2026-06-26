@@ -13,6 +13,11 @@ const ENGINE_INSTRUCTIONS = {
 }
 export const KNOWN_ENGINES = Object.keys(ENGINE_INSTRUCTIONS)
 
+// Instruction-targetPath движка (claude→CLAUDE.md, codex→AGENTS.md, gemini→GEMINI.md); null для неизвестного.
+export function engineTarget(engine) {
+  return ENGINE_INSTRUCTIONS[engine]?.[1] ?? null
+}
+
 // Чистый конфликт-алгоритм: решает writes/materialized/deletes/conflicts по
 // targets + prevManifest + diskHashFn. Не читает bundle, не знает про движки.
 export function decidePlan({ targets, prevManifest, diskHashFn, force = false }) {
