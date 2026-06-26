@@ -25,7 +25,7 @@ function tmpProject(t) {
   return dir
 }
 
-const rulePath = (dir, file) => join(dir, '.claude', 'rules', file)
+function rulePath(dir, file) { return join(dir, '.claude', 'rules', file) }
 
 test('1: list — JSON-массив модулей с ожидаемой формой', (t) => {
   const dir = tmpProject(t)
@@ -149,6 +149,15 @@ test('9b: неизвестный модуль — ok:false, error, exit 1', (t) 
   const r = runCli(['init', '--modules', 'no-such-module'], dir)
   assert.equal(r.exitCode, 1)
   assert.match(JSON.parse(r.stdout).error, /Unknown module/)
+})
+
+test('9c: пустой --modules — ok:false, error, exit 1', (t) => {
+  const dir = tmpProject(t)
+  for (const val of ['', ',']) {
+    const r = runCli(['init', '--modules', val], dir)
+    assert.equal(r.exitCode, 1)
+    assert.equal(JSON.parse(r.stdout).ok, false)
+  }
 })
 
 test('10: честный манифест — engines только реально доставленные', (t) => {

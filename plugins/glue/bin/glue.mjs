@@ -27,6 +27,8 @@ function emitUnknown(label) {
   process.exit(1)
 }
 
+function parseCsv(s) { return s.split(',').map((v) => v.trim()).filter(Boolean) }
+
 if (cmd === 'list') {
   // glue list → плоский список модулей встроенного bundle (JSON)
   const registry = loadBundle()
@@ -56,8 +58,9 @@ if (cmd === 'list') {
       else throw new Error(`Unknown argument: ${a}`)
     }
     if (modulesArg === null) throw new Error('Missing required --modules')
-    const selected = modulesArg.split(',').map((s) => s.trim()).filter(Boolean)
-    const engines = enginesArg === null ? undefined : enginesArg.split(',').map((s) => s.trim()).filter(Boolean)
+    const selected = parseCsv(modulesArg)
+    if (selected.length === 0) throw new Error('Empty --modules: at least one module required')
+    const engines = enginesArg !== null ? parseCsv(enginesArg) : undefined
     const { manifest, conflicts } = runInit({
       selected,
       engines,
