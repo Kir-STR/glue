@@ -1,0 +1,92 @@
+{
+  "operator-gate": {
+    "title": "Operator gate",
+    "group": "base-discipline",
+    "default": true,
+    "note": "Инструкции и процедуры подтверждения человеком перед необратимыми и рискованными действиями (удаление, push, отправка наружу).",
+    "templates": ["operator-gate.md"],
+    "instructionBlock": "operator-gate",
+    "dependsOn": []
+  },
+  "secret-hygiene": {
+    "title": "Secret hygiene",
+    "group": "base-discipline",
+    "default": true,
+    "note": "Не выводить секреты целиком: не дампить окружение, запрашивать переменные точечно, маскировать значения в выводе, логах и телах PR/комментариев.",
+    "templates": ["secret-hygiene.md"],
+    "instructionBlock": "secret-hygiene",
+    "dependsOn": []
+  },
+  "worktree-workflow": {
+    "title": "Worktree workflow",
+    "group": "git-pr-workflow",
+    "default": false,
+    "note": "Правила работы в изолированных git worktree — по одной задаче на ветку, без смешения изменений.",
+    "templates": ["worktree-workflow.md"],
+    "instructionBlock": "worktree-workflow",
+    "dependsOn": []
+  },
+  "pr-policy": {
+    "title": "PR policy",
+    "group": "git-pr-workflow",
+    "default": false,
+    "note": "Правила работы с ветками и pull request'ами: как называть, когда открывать, как мёржить.",
+    "templates": ["pr-policy.md"],
+    "instructionBlock": "pr-policy",
+    "dependsOn": ["worktree-workflow"]
+  },
+  "review-loop": {
+    "title": "Review loop",
+    "group": "git-pr-workflow",
+    "default": false,
+    "note": "Процедура ревью изменений автоматическим ревьюером перед слиянием (нужен CI-бот ревью).",
+    "templates": ["review-loop.md"],
+    "instructionBlock": "review-loop",
+    "dependsOn": ["pr-policy"]
+  },
+  "subagent-dispatch": {
+    "title": "Subagent dispatch",
+    "group": "subagent-workflow",
+    "default": false,
+    "note": "Правила делегирования задач субагентам: когда дробить работу и как проверять результат.",
+    "templates": ["subagent-dispatch.md"],
+    "instructionBlock": "subagent-dispatch",
+    "dependsOn": []
+  },
+  "safety": {
+    "title": "Safety",
+    "group": "project-governance",
+    "default": false,
+    "note": "Заготовка правил безопасности проекта — каркас, заполняется под проект вручную.",
+    "templates": ["safety.md"],
+    "instructionBlock": "safety",
+    "dependsOn": []
+  },
+  "architectural-invariants": {
+    "title": "Architectural invariants",
+    "group": "project-governance",
+    "default": false,
+    "note": "Заготовка архитектурных инвариантов — каркас (границы слоёв, изоляция адаптеров, shared без бизнес-логики), заполняется под проект вручную.",
+    "templates": ["architectural-invariants.md"],
+    "instructionBlock": "architectural-invariants",
+    "dependsOn": []
+  },
+  "versioning": {
+    "title": "Versioning",
+    "group": "project-governance",
+    "default": false,
+    "note": "Правила версионирования контрактов, схем и документов: когда поднимать версию и как фиксировать.",
+    "templates": ["versioning.md"],
+    "instructionBlock": "versioning",
+    "dependsOn": []
+  },
+  "glossary": {
+    "title": "Glossary",
+    "group": "project-governance",
+    "default": false,
+    "note": "Единый словарь терминов проекта и правила языка документации.",
+    "templates": ["glossary.md"],
+    "instructionBlock": "glossary",
+    "dependsOn": []
+  }
+}
