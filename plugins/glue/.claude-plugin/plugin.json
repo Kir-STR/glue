@@ -1,0 +1,5 @@
+{
+  "name": "glue",
+  "version": "0.1.0",
+  "description": "Glue: нативная раскладка правил и знаний в проект (один плагин, встроенный контент). Доступно: /glue:list. В разработке: /glue:init, /glue:status + SessionStart-хук."
+}

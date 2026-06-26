@@ -1,0 +1,5 @@
+{
+  "registry": "content/bundle.json",
+  "modulesDir": "content/modules",
+  "instructionsDir": "content/instructions"
+}
