@@ -29,3 +29,14 @@ export function validateBundle(registry) {
   if (errors.length) throw new Error('Invalid bundle registry:\n' + errors.join('\n'))
   return registry
 }
+
+export function listModules(registry) {
+  return Object.entries(registry).map(([id, m]) => ({
+    id,
+    title: m.title,
+    group: m.group ?? null,
+    default: m.default ?? false,
+    note: m.note ?? null,
+    dependsOn: m.dependsOn ?? [],
+  }))
+}
