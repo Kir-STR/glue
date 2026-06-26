@@ -10,7 +10,6 @@ if (cmd === 'list') {
   // glue list → плоский список модулей встроенного bundle (JSON)
   const registry = loadBundle()
   process.stdout.write(JSON.stringify(listModules(registry), null, 2) + '\n')
-  process.exit(0)
 } else {
   process.stderr.write(`[glue] неизвестная команда: ${cmd ?? '(нет)'}\n`)
   process.exit(1)
