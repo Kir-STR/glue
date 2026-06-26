@@ -28,8 +28,7 @@ test('cutover: ровно один плагин объявляет SessionStart-
 test('cutover: marketplace содержит только glue → ./plugins/glue', () => {
   const mp = JSON.parse(readFileSync(join(REPO_ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'))
   assert.deepEqual(mp.plugins.map((p) => p.name), ['glue'])
-  const glue = mp.plugins.find((p) => p.name === 'glue')
-  assert.equal(glue.source, './plugins/glue')
+  assert.equal(mp.plugins[0].source, './plugins/glue')
 })
 
 test('cutover: legacy-директории удалены, glue остаётся', () => {
