@@ -1,15 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runInit } from '../src/init.mjs'
-import { loadBundle, loadContract } from '../src/bundle.mjs'
-import { hashContent } from '../src/hash.mjs'
 
-const PLUGIN_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const registry = loadBundle(PLUGIN_ROOT, loadContract(PLUGIN_ROOT))
 function tmp() { return mkdtempSync(join(tmpdir(), 'glue-init-')) }
 
 test('runInit чистый проект → файлы + манифест', () => {
