@@ -3,7 +3,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 // Корень плагина = родитель каталога src/.
-const PLUGIN_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+export const PLUGIN_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 export function loadContract(root = PLUGIN_ROOT) {
   return JSON.parse(readFileSync(join(root, 'glue.contract_v1.json'), 'utf8'))
@@ -39,4 +39,10 @@ export function listModules(registry) {
     note: m.note ?? null,
     dependsOn: m.dependsOn ?? [],
   }))
+}
+
+// Версия плагина из манифеста — провенанс манифеста доставки (packVersion).
+export function readPluginVersion(root = PLUGIN_ROOT) {
+  const pj = JSON.parse(readFileSync(join(root, '.claude-plugin', 'plugin.json'), 'utf8'))
+  return pj.version
 }
