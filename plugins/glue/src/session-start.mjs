@@ -1,4 +1,4 @@
-import { readManifest, SCHEMA_VERSION } from './manifest.mjs'
+import { readManifest, isUsablePrevManifest } from './manifest.mjs'
 import { nativeDeliveryValid } from './gate.mjs'
 import { resolveDependencies } from './resolve.mjs'
 import { buildTargets } from './plan.mjs'
@@ -11,11 +11,14 @@ function resolvedDefaults(registry) {
 }
 
 // Выбор модулей для fallback-инъекции (R1):
-//  - манифест читаем + schemaVersion '1' + resolve успешно → его modules (в т.ч. [] → пусто);
-//  - иначе → resolved defaults. Никогда «все» неявно.
+//  - манифест usable (isUsablePrevManifest — наш формат и наш producerPack) + resolve успешно
+//    → его modules (в т.ч. [] → пусто);
+//  - иначе (нет/corrupt/unsupported/foreign/неразрешимо) → resolved defaults. Никогда «все» неявно.
+//  Единый критерий «наш usable-манифест» по всему коду: хук не читает legacy/foreign-манифест
+//  как источник выбора (согласуется с «не читать legacy ради миграции», срез 2).
 function selectFallbackModules(projectDir, registry) {
   const m = readManifest(projectDir)
-  if (m && m.schemaVersion === SCHEMA_VERSION) {
+  if (isUsablePrevManifest(m)) {
     try { return resolveDependencies(registry, m.modules ?? []) } catch { return resolvedDefaults(registry) }
   }
   return resolvedDefaults(registry)

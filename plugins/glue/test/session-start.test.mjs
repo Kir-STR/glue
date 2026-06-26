@@ -59,6 +59,22 @@ test('usable-манифест с modules:[] → инжект пусто (не de
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
+test('foreign-манифест (producerPack glue-rules) → fallback defaults, НЕ его modules', () => {
+  const d = tmp()
+  try {
+    // foreign-манифест: schemaVersion '1', но чужой producerPack; modules — не-дефолтный (glossary).
+    mkdirSync(join(d, '.glue'), { recursive: true })
+    writeFileSync(join(d, '.glue/manifest.json'), JSON.stringify({
+      schemaVersion: '1', status: 'complete', engines: ['claude'], modules: ['glossary'],
+      files: [{ producerPack: 'glue-rules', targetPath: 'CLAUDE.md', writtenHash: 'x' }],
+    }), 'utf8')
+    const r = runSessionStart(d)
+    const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
+    assert.match(ctx, /operator-gate|Operator-gate/i)   // defaults инжектированы
+    assert.doesNotMatch(ctx, /Глоссарий|Glossary/i)     // foreign modules (glossary) НЕ инжектированы
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
 // Снимок дерева проекта (относительные пути файлов) для проверки read-only.
 function snapshot(dir, prefix = '') {
   const out = []
