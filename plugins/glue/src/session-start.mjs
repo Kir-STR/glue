@@ -24,8 +24,16 @@ function selectFallbackModules(projectDir, registry) {
   return resolvedDefaults(registry)
 }
 
-function payload(additionalContext) {
-  return JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext } })
+// systemMessage — UX-канал к пользователю на экран (Claude Code показывает его при exit 0,
+// отдельно от additionalContext, который идёт в контекст модели). stderr при exit 0 для
+// SessionStart игнорируется, поэтому диагностику непокрытия несёт systemMessage, не stderr.
+const SYS_FALLBACK = '⚠️ Glue плагин не инициализирован — в контекст введены временные guardrails-инструкции. Прочитать — попроси агента: «процитируй блок <glue>». Инициализация плагина Glue: /glue:init'
+const SYS_EMPTY = '⚠️ Glue плагин не инициализирован, модули не выбраны — контроль не применяется. Инициализация плагина Glue: /glue:init'
+
+function payload(additionalContext, systemMessage) {
+  const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext } }
+  if (systemMessage) out.systemMessage = systemMessage
+  return JSON.stringify(out)
 }
 
 // Тестируемое ядро SessionStart-хука. Read-only (ничего не пишет в проект). exit 0 всегда.
@@ -43,7 +51,7 @@ export function runSessionStart(projectDir) {
     const ctx = bodies.length
       ? '<glue>\nАктивные правила проекта (Glue, fallback-инъекция — native-доставка не активна). Соблюдай их:\n\n' + bodies.join('\n\n') + '\n</glue>'
       : '<glue>\nGlue: модули правил не выбраны — контроль не применяется. Сообщаю честно, иллюзии покрытия нет.\n</glue>'
-    return { stdout: payload(ctx), stderr: '[glue] native delivery inactive — запусти /glue:init\n', exitCode: 0 }
+    return { stdout: payload(ctx, bodies.length ? SYS_FALLBACK : SYS_EMPTY), stderr: '', exitCode: 0 }
   } catch (e) {
     // fail-closed: деградированный, но валидный ответ; сессию не валим.
     return { stdout: payload('<glue>\nGlue: ошибка fallback-инъекции — правила не применены.\n</glue>'), stderr: `[glue] fallback error: ${e.message}\n`, exitCode: 0 }
