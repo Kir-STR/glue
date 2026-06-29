@@ -15,13 +15,14 @@ test('native валиден → stdout {} , stderr пусто, exit 0, диск 
     const before = JSON.stringify(snapshot(d))
     const r = runSessionStart(d)
     assert.equal(r.stdout, '{}')
+    assert.doesNotMatch(r.stdout, /systemMessage/) // native молчит — нет UX-сообщения
     assert.equal(r.stderr, '')
     assert.equal(r.exitCode, 0)
     assert.equal(JSON.stringify(snapshot(d)), before) // read-only: ничего не записано
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
-test('нет манифеста → fallback инжектит defaults (тела правил)', () => {
+test('нет манифеста → fallback инжектит defaults (тела правил) + systemMessage пользователю', () => {
   const d = tmp()
   try {
     const r = runSessionStart(d)
@@ -30,7 +31,9 @@ test('нет манифеста → fallback инжектит defaults (тела
     const ctx = payload.hookSpecificOutput.additionalContext
     assert.match(ctx, /<glue>/)
     assert.match(ctx, /operator-gate|Operator gate/i) // дефолтный модуль operator-gate в инъекции
-    assert.match(r.stderr, /native delivery inactive|init/i)
+    assert.match(payload.systemMessage, /не инициализирован/i) // UX-сообщение пользователю на экран
+    assert.match(payload.systemMessage, /\/glue:init/)
+    assert.equal(r.stderr, '') // диагностику несёт systemMessage; stderr при exit 0 невидим
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
@@ -53,9 +56,11 @@ test('usable-манифест с modules:[] → инжект пусто (не de
     runInit({ selected: [], engines: ['claude'], projectDir: d, force: false, now: 'T' })
     writeFileSync(join(d, 'CLAUDE.md'), 'ПРАВКА', 'utf8') // native invalid, манифест usable, modules:[]
     const r = runSessionStart(d)
-    const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
+    const payload = JSON.parse(r.stdout)
+    const ctx = payload.hookSpecificOutput.additionalContext
     assert.match(ctx, /не выбрано|не применяется/i) // честная заметка, без defaults
     assert.doesNotMatch(ctx, /Operator gate/i)       // дефолты НЕ инжектированы
+    assert.match(payload.systemMessage, /модули не выбраны/i) // пустой fallback — свой UX-текст
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 

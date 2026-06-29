@@ -75,7 +75,7 @@ test('4: session-start — native {}; после сноса target — fallback-
   assert.equal(fb.exitCode, 0)
   assert.ok(fb.stdout.includes('hookSpecificOutput'))
   assert.ok(fb.stdout.includes('<glue>'))
-  assert.ok(fb.stderr.includes('native delivery inactive'))
+  assert.ok(JSON.parse(fb.stdout).systemMessage.includes('/glue:init')) // диагностика пользователю в systemMessage
 })
 
 test('5: повторный init — идемпотентен, не конфликт', (t) => {
