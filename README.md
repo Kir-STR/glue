@@ -1,14 +1,49 @@
 # Glue
 
-Glue is an approach to working with project artifacts, embodied as a set of plugins: it makes a project's knowledge, rules, decisions, constraints, and skills addressable, linked, observable, and traceable. Glue doesn't manage your code, replace development or planning tools, or orchestrate agents — it ties together what lives around the work.
+Glue installs modular project rules and delivers them as native instruction files for Claude Code, Codex, and Gemini. You pick which rule modules and which engines; Glue writes the files and tracks them with a manifest.
 
-It ships as a single `glue` plugin through the `glue` marketplace: the plugin carries its mechanism and content embedded — you select engines and modules with `/glue:init`. Today it fills P1 ("Rules & Knowledge") — structure and visibility for rules and knowledge (soft control only). Further kinds are roadmap:
+It ships as a single `glue` plugin: the mechanism and the rule content are embedded in the plugin. This is an early, experimental foundation — today it delivers rules. Other artifact kinds (knowledge, decisions, constraints) are planned, not yet built.
 
-- **P2 "Decisions & Constraints"** — recording decisions and hard enforcement of constraints (code judge + provenance).
-- **P3 "Support"** — the same pattern for infrastructure (backlog).
+## Quick start
 
-Full concept (in Russian): see [`docs/superpowers/specs/2026-06-23-glue-concept-design_v2.md`](docs/superpowers/specs/2026-06-23-glue-concept-design_v2.md).
+```text
+/plugin marketplace add Kir-STR/glue
+/plugin install glue@glue
+/glue:init
+/glue:status
+```
 
-## Repository
+- `/glue:list` — shows the available rule modules (id, group, defaults, dependencies).
+- `/glue:init` — installs the selected modules for the chosen engines. It writes the rule bodies to `.claude/rules/*.md`, native entry files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`), and a delivery manifest at `.glue/manifest.json`. Re-running with the same selection is a no-op.
+- `/glue:status` — reports whether installed files still match what Glue wrote: `missing`, `changed` (edited by hand), or in `drift`.
 
-A standalone git repository with its own `.git`, which isolates Claude Code's memory: launched from this folder, Claude sees `glue` itself as the repo root rather than the parent vault, and keeps its own memory folder. The folder is ignored by the parent vault (`1.Projects/RnD/real-tools/*`) — this is a standalone repository, not a vault submodule. Same setup as the neighboring `invoker`.
+## Available today
+
+- A library of modular rule modules, grouped (base discipline, git/PR workflow, subagent workflow, project governance).
+- Native delivery: rule bodies in `.claude/rules/*.md`, with `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` as engine entry points that reference them.
+- A delivery manifest with content hashes, so `/glue:status` can detect missing or hand-edited files.
+- A `SessionStart` hook that injects baseline guardrails into the agent's context until you run `/glue:init`.
+
+## Planned
+
+Not yet implemented — this is the direction, not current behavior:
+
+- Project knowledge, decisions, and constraints as first-class artifact kinds.
+- Skills and environments.
+- Deterministic checks and semantic review.
+- Provenance (tracing a constraint back to the decision that justifies it).
+- A visual map of how artifacts link together.
+
+The intended future model: a decision justifies a constraint, a constraint applies within a skill and environment, and a check produces a policy decision that the host can act on. Glue is meant to resolve *which* constraints apply to an agent action and explain the resulting decision — the host stays responsible for execution and enforcement.
+
+## What Glue is not
+
+- It does not write application code.
+- It is not a task tracker, project planner, or multi-agent orchestrator.
+- It does not manage queues, retries, or sandboxes.
+- It is not a code-graph analysis system.
+- It does not execute project actions by itself.
+
+## License
+
+[Apache License 2.0](LICENSE).
