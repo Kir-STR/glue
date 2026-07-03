@@ -1,0 +1,10 @@
+{
+  "name": "glue-repo",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"plugins/glue/test/*.test.mjs\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
