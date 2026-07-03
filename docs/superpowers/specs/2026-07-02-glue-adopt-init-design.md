@@ -72,7 +72,7 @@
 - `tailored-from-template` — шаблон проектно заполнен по коду/докам/ответам оператора.
 - `adopted-existing` — смысл уже покрыт существующим текстом, не дублируем.
 - `merged` — существующий текст и шаблон сведены в один файл.
-- `declined` — оператор явно отказался от модуля.
+- `declined` — оператор явно отказался от модуля. Форма: `{ id, decision, referenceTemplate, targetPaths: [] }`; записей в `files[]` нет.
 - `local` — правило есть в проекте, но не модуль glue; сохраняется как baseline.
 
 **`files[]` — только целостность** (как сейчас: `producerPack`, `packVersion`, `targetPath`, `writtenHash`, `sourceTemplate`). Поля `relation` **нет** — семантика живёт на `modules[]`, дублировать её на files не нужно; связь file→module выводится через `targetPath ∈ module.targetPaths`. Инструкц-файлы (`CLAUDE.md`/`AGENTS.md`) — files без модуля.
@@ -92,11 +92,11 @@
 ## Skill protocol (P0–P5)
 
 **Протокол скилла** (эволюция `skills/init`):
-- **P0** — `.claude/rules/*` + `CLAUDE.md` есть → инвентарь; нет → де-скоуплено (greenfield-init).
+- **P0** — есть хотя бы один инструкц-источник из набора P2 (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/*`) → инвентарь; ни одного → де-скоуплено (greenfield-init).
 - **P1** — **один гейт режима на весь существующий набор**: `улучшить` / `оставить` / `заменить` (дефолт `улучшить`). Per-module accept/reject — не здесь, а в P4 (ближе к `/init`, меньше UX-дробления).
 - **P2** — направленный обзор субагентом (источники ниже).
 - **P3** — AskUserQuestion только по пробелам, что код не выводит.
-- **P4** — дифф-предложение на базлайне, обоснование на строку, **per-module** accept/reject, подтверждение до записи. `--force` как слепая перезапись уходит.
+- **P4** — дифф-предложение на базлайне, обоснование на строку, **per-module** accept/reject, подтверждение до записи. `--force` уходит целиком: CLI отвечает на флаг явной ошибкой с подсказкой на режим `заменить` (JSON, exit 1) — не игнорирует и не мапит на режим; мёртвый параметр `force` (`runInit`/`plan`/`decidePlan`) удаляется из движка.
 - **P5** — authored-targets → apply-слой → манифест v2 с `decisions`. Карту в `CLAUDE.md`/`AGENTS.md` правим диффом, чтобы ссылалась на финальный набор (включая `local`-правила).
 
 **Источники обзора (P2):** `CLAUDE.md`, `AGENTS.md`, `.claude/rules/*`, `README.md`, `docs/**`, `plugins/glue/src/**`, `plugins/glue/content/**`, `plugins/glue/bin/glue.mjs`, `plugins/glue/test/**`. Гардрейлы: источник правды по архитектуре — **код `src/**`** (не исторические `docs/**` — read-only/контекст); `.env*` не читаем и не эхоим (`secret-hygiene`).
@@ -119,6 +119,6 @@
 
 ## Migration / test plan
 
-- **v1 → v2.** Старые v1-манифесты становятся `unusable` → `status` деградирует в fallback (приемлемо: у dogfood-репо манифеста ещё нет). Co-update потребителей контракта (`apply`/`status`/`init`/`gate`) + полная статическая проверка в одном шаге.
-- **Тесты.** Запуск: `npm test` (glob-форма закреплена в `scripts.test`; directory-форма падает на Node 24/Windows). Новые кейсы: authored-targets в apply-слое; манифест v2 (round-trip build/read, `isUsablePrevManifest`); status drift-eligibility по `decision`; adopt-поток (existing-baseline не перетёрт, `local` сохранён); fallback-selection `session-start` на v2-манифесте (выбор из манифеста, не resolved-дефолты).
+- **v1 → v2.** Старые v1-манифесты становятся `unusable` → `status` деградирует в fallback (приемлемо: у dogfood-репо манифеста ещё нет). Co-update потребителей и верификация — единый список в § Manifest v2 «Shared-contract change».
+- **Тесты.** Запуск: `npm test` (glob-форма закреплена в `scripts.test`; directory-форма падает на Node 24/Windows). Новые кейсы: authored-targets в apply-слое; манифест v2 (round-trip build/read, `isUsablePrevManifest`); status drift-eligibility по `decision`; adopt-поток (existing-baseline не перетёрт, `local` сохранён); fallback-selection `session-start` на v2-манифесте (выбор из манифеста, не resolved-дефолты); `glue init --force` → явная ошибка.
 - **Дисциплина среза.** Код плагина (`content/`, `src/`, `skills/`, `bin/`) — только worktree + PR. Merge-гейт: CI зелёный (матрица ubuntu/windows × Node 22/24) + оператор «мержь».
