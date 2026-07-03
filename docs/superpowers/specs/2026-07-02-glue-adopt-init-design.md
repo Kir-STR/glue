@@ -47,8 +47,8 @@
 ```json
 {
   "schemaVersion": "2",
-  "producer": "glue",
-  "deliveryMode": "adopt",
+  "deliveryId": "2026-07-04T00:00:00.000Z",
+  "completedAt": "2026-07-04T00:00:00.000Z",
   "status": "complete",
   "engines": ["claude", "codex"],
   "modules": [
@@ -60,7 +60,7 @@
       "targetPaths": [".claude/rules/retro-loop.md"] }
   ],
   "files": [
-    { "producerPack": "glue", "targetPath": ".claude/rules/safety.md",
+    { "producerPack": "glue", "packVersion": "0.2.1", "targetPath": ".claude/rules/safety.md",
       "writtenHash": "…", "sourceTemplate": "safety.md" }
   ]
   /* files[] сокращён до одной записи; в реальности — по одному entry на каждый управляемый файл */
@@ -75,9 +75,11 @@
 - `declined` — оператор явно отказался от модуля.
 - `local` — правило есть в проекте, но не модуль glue; сохраняется как baseline.
 
-**`files[]` — только целостность** (как сейчас: `producerPack`, `targetPath`, `writtenHash`, `sourceTemplate`). Поля `relation` **нет** — семантика живёт на `modules[]`, дублировать её на files не нужно; связь file→module выводится через `targetPath ∈ module.targetPaths`. Инструкц-файлы (`CLAUDE.md`/`AGENTS.md`) — files без модуля.
+**`files[]` — только целостность** (как сейчас: `producerPack`, `packVersion`, `targetPath`, `writtenHash`, `sourceTemplate`). Поля `relation` **нет** — семантика живёт на `modules[]`, дублировать её на files не нужно; связь file→module выводится через `targetPath ∈ module.targetPaths`. Инструкц-файлы (`CLAUDE.md`/`AGENTS.md`) — files без модуля.
 
-**Shared-contract change.** `schemaVersion "1" → "2"` с `modules: string[] → object[]` ломает потребителей: `buildTargets` ждёт `modules` как массив id (`registry[id]`), значит `status.mjs:52` и `init.mjs` требуют `.map(m => m.id)`; `isUsablePrevManifest` (`manifest.mjs:26`) сделает v1-манифесты `unusable` → fallback. Co-update `apply`/`status`/`init`/`gate` в одном шаге + полная статическая проверка (не unit-only), по `subagent-dispatch § shared-контракт`. Если есть отдельный JSON-schema контракт-файл манифеста — его версия бампается (`versioning.md`).
+**Greenfield под v2.** Greenfield-`init` пишет тот же `schemaVersion: "2"`: каждый модуль получает `decision: "added-from-template"` (запись дословно из шаблона), instruction-файлы — как в adopt, `files[]` без модуля. Отдельной greenfield-формы манифеста нет.
+
+**Shared-contract change.** `schemaVersion "1" → "2"` с `modules: string[] → object[]` ломает потребителей: `buildTargets` ждёт `modules` как массив id (`registry[id]`), значит `status.mjs:52` требует `.map(m => m.id)`, а `init.mjs` как producer обязан собирать object[] с `decision`; `session-start.mjs:22` тоже читает `m.modules` (`resolveDependencies`) — без co-update его локальный `catch` молча подменит выбор манифеста resolved-дефолтами (тихий отказ, обязателен тест); `isUsablePrevManifest` (`manifest.mjs:26`) сделает v1-манифесты `unusable` → fallback (`gate.mjs` сам `m.modules` не читает — обновляется через общий `isUsablePrevManifest`). Co-update `apply`/`status`/`init`/`session-start` в одном шаге, по `subagent-dispatch § shared-контракт`. Верификация: статического слоя типов в проекте нет — практический эквивалент «полной статической проверки» = grep-sweep всех потребителей `m.modules`/`m.files` + полный test-suite. Контракт-файл `manifest.schema_v2.json` заводится в этом же срезе (F-09; версия в имени по `versioning.md`).
 
 ## Status semantics
 
@@ -118,5 +120,5 @@
 ## Migration / test plan
 
 - **v1 → v2.** Старые v1-манифесты становятся `unusable` → `status` деградирует в fallback (приемлемо: у dogfood-репо манифеста ещё нет). Co-update потребителей контракта (`apply`/`status`/`init`/`gate`) + полная статическая проверка в одном шаге.
-- **Тесты.** Запуск строго glob-формой: `node --test "plugins/glue/test/*.test.mjs"` (directory-форма падает на Node 24/Windows). Новые кейсы: authored-targets в apply-слое; манифест v2 (round-trip build/read, `isUsablePrevManifest`); status drift-eligibility по `decision`; adopt-поток (existing-baseline не перетёрт, `local` сохранён).
-- **Дисциплина среза.** Код плагина (`content/`, `src/`, `skills/`, `bin/`) — только worktree + PR. Merge-гейт: локальные тесты зелёные + ревью + оператор «мержь».
+- **Тесты.** Запуск: `npm test` (glob-форма закреплена в `scripts.test`; directory-форма падает на Node 24/Windows). Новые кейсы: authored-targets в apply-слое; манифест v2 (round-trip build/read, `isUsablePrevManifest`); status drift-eligibility по `decision`; adopt-поток (existing-baseline не перетёрт, `local` сохранён); fallback-selection `session-start` на v2-манифесте (выбор из манифеста, не resolved-дефолты).
+- **Дисциплина среза.** Код плагина (`content/`, `src/`, `skills/`, `bin/`) — только worktree + PR. Merge-гейт: CI зелёный (матрица ubuntu/windows × Node 22/24) + оператор «мержь».

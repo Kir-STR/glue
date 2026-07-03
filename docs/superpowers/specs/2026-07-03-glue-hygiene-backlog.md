@@ -20,7 +20,7 @@ Severity: **A** — реальный дефект или дыра в заявл�
 | F-10 | ~~B~~ | контент | **Снят как false positive (2026-07-03, H4):** все 10 модулей поставляются С frontmatter `globs`/`class` (проверено по `content/modules/*.md`) — обещание шаблона верно. Исходная посылка была выведена из harness-рендеринга правил в контексте (он срезает frontmatter), не из файлов | — |
 | F-11 | C | контент | README английский, descriptions в `plugin.json` / `marketplace.json` русские — языковой шов на витрине маркетплейса (полный перевод отложен по roadmap, но одна строка — дёшево) | `plugin.json:4`, `marketplace.json:11` |
 | F-12 | C | доки | `roadmap_v1.md` и adopt-спека untracked — единственные копии на диске; закоммитить после вычитки | `docs/superpowers/specs/` |
-| F-13 | B | спека | adopt-спека не фиксирует вид greenfield-манифеста при `schemaVersion: "2"` (v2 ломает v1, greenfield-`init` тоже обязан писать v2 — какие `decision` у его модулей?) | adopt-спека § Manifest v2 |
+| F-13 | ~~B~~ | спека | **Закрыт (2026-07-03, `docs: correct`):** в § Manifest v2 зафиксирован greenfield-манифест под v2 — каждый модуль `decision: "added-from-template"`, instruction-файлы без модуля. Исходно: спека не фиксировала вид greenfield-манифеста при `schemaVersion: "2"` | adopt-спека § Manifest v2 |
 
 ## Приоритизация → релизы
 
@@ -82,4 +82,4 @@ Severity: **A** — реальный дефект или дыра в заявл�
 
 - **F-09** → в состав adopt/v2-среза: завести `manifest.schema_v2.json` при реализации v2 (спека уже предусматривает бамп контракт-файла).
 - **F-12** — операторское действие: закоммитить roadmap и adopt-спеку после вычитки.
-- **F-13** — правка untracked adopt-спеки при вычитке (одна фраза в § Manifest v2).
+- **F-13** — закрыт 2026-07-03 (`docs: correct` в adopt-спеку, § Manifest v2).
