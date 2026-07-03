@@ -48,7 +48,7 @@ test('buildTargets бросает на отсутствующий .tmpl (бит�
     mkdirSync(join(d, 'content', 'modules'), { recursive: true })
     mkdirSync(join(d, 'content', 'instructions'), { recursive: true })
     writeFileSync(join(d, 'content', 'modules', 'x.md'), 'X', 'utf8')
-    const reg = { x: { title: 'X', templates: ['x.md'], instructionBlock: 'x', dependsOn: [] } }
+    const reg = { x: { title: 'X', templates: ['x.md'], dependsOn: [] } }
     assert.throws(() => buildTargets({
       registry: reg, modules: ['x'], engines: ['claude'], contract, pluginRoot: d,
     }), /missing instruction template/)
