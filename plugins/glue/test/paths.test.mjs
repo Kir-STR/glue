@@ -22,3 +22,12 @@ test('safeTargetPath бросает на escape из проекта', () => {
 test('safeTargetPath бросает на путь вне зон', () => {
   assert.throws(() => safeTargetPath(DIR, 'src/code.js'), /outside allowed zone/)
 })
+
+test('safeTargetPath: файловые зоны — только точное имя, суффиксы отклоняются', () => {
+  for (const bad of ['CLAUDE.md.bak', 'CLAUDE.mdx', 'AGENTS.md.tmp', 'GEMINI.md-old']) {
+    assert.throws(() => safeTargetPath(DIR, bad), /outside allowed zone/, bad)
+  }
+  // сами точные имена остаются валидными
+  assert.equal(safeTargetPath(DIR, 'AGENTS.md'), resolve(DIR, 'AGENTS.md'))
+  assert.equal(safeTargetPath(DIR, 'GEMINI.md'), resolve(DIR, 'GEMINI.md'))
+})
