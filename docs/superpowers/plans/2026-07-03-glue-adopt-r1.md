@@ -252,7 +252,7 @@ export function isUsablePrevManifest(m) {
 
 ```bash
 git add plugins/glue/src/manifest.mjs plugins/glue/test/manifest.test.mjs
-git commit -m "feat(glue): manifest v2 - object modules with decision"
+git commit -m "feat(glue): manifest v2 — object modules with decision"
 ```
 
 ### Task B2: `init.mjs` — producer собирает modules-object[]
@@ -407,7 +407,7 @@ Drift-блок (строки 46–60): в `buildTargets` передавать т
 
 ```bash
 git add plugins/glue/src/status.mjs plugins/glue/test/status.test.mjs
-git commit -m "feat(glue): status v2 - per-decision drift eligibility"
+git commit -m "feat(glue): status v2 — per-decision drift eligibility"
 ```
 
 ### Task B4: `session-start.mjs` — fallback-selection на v2
@@ -558,6 +558,8 @@ git commit -m "feat(glue): manifest v2 contract file (F-09)"
 # PR C — `feat-adopt-engine`: authored-targets + `glue adopt`
 
 Ветка `feat-adopt-engine` от `main` (после merge B). Оценка: ~4 файла, ~320 reviewable строк.
+
+**Бриф implementer'у (из триажа PR A, F3):** не переиспользовать имя/семантику `force` ни в каких параметрах adopt-движка — деструктуризация JS молча глотает лишние/одноимённые ключи, конфликтующая семантика не всплывёт ошибкой.
 
 ### Task C1: `src/adopt.mjs` — валидация + builder + оркестратор
 
@@ -730,7 +732,7 @@ export function runAdopt({ adoptPlan, projectDir, now }) {
 
 ```bash
 git add plugins/glue/src/adopt.mjs plugins/glue/test/adopt.test.mjs
-git commit -m "feat(glue): adopt engine - authored targets through applyPlan"
+git commit -m "feat(glue): adopt engine — authored targets through applyPlan"
 ```
 
 ### Task C2: CLI `glue adopt --plan <file>`
@@ -799,7 +801,7 @@ test('CLI adopt: нет --plan / битый JSON → JSON error, exit 1', () => 
 
 ```bash
 git add plugins/glue/bin/glue.mjs plugins/glue/test/adopt.test.mjs
-git commit -m "feat(glue): adopt subcommand - execute authored plan file"
+git commit -m "feat(glue): adopt subcommand — execute authored plan file"
 ```
 
 ### Task C3: финализация PR C
@@ -857,7 +859,7 @@ node "${CLAUDE_PLUGIN_ROOT}/bin/glue.mjs" adopt --plan <путь-к-плану.j
 
 ```bash
 git add plugins/glue/skills/adopt/SKILL.md
-git commit -m "feat(glue): adopt skill - P0-P5 protocol"
+git commit -m "feat(glue): adopt skill — P0-P5 protocol"
 ```
 
 ### Task D2: `skills/init/SKILL.md` — отсылка к adopt
@@ -886,7 +888,7 @@ git commit -m "docs(glue): init skill points conflicts to adopt"
 
 ```bash
 git add plugins/glue/.claude-plugin/plugin.json
-git commit -m "chore(glue): release 0.3.0 - semantic adopt"
+git commit -m "chore(glue): release 0.3.0 — semantic adopt"
 ```
 
 ### Task D4: финализация PR D
