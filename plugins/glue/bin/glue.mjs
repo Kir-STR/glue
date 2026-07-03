@@ -21,10 +21,7 @@ function flagValue(flags, i, name) {
 // Нераспознанный ввод (--help / unknown / нет команды): JSON error + exit 1.
 // Никогда не дефолтит в session-start.
 function emitUnknown(label) {
-  const error = `unknown command: ${label ?? '(none)'}`
-  process.stdout.write(JSON.stringify({ ok: false, error }, null, 2) + '\n')
-  process.stderr.write(`[glue] ${error}\n`)
-  process.exit(1)
+  emitError('cli', new Error(`unknown command: ${label ?? '(none)'}`))
 }
 
 function parseCsv(s) { return s.split(',').map((v) => v.trim()).filter(Boolean) }
