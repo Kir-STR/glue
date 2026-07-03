@@ -4,7 +4,7 @@ import { plan, KNOWN_ENGINES } from './plan.mjs'
 import { applyPlan } from './apply.mjs'
 
 // Программный оркестратор: resolve → plan → conflict-gate → apply. Не CLI.
-export function runInit({ selected, engines, projectDir, force = false, now }) {
+export function runInit({ selected, engines, projectDir, now }) {
   // Движки: пуст/нет → claude; иначе как есть (не авто-добавлять claude).
   const effectiveEngines = engines && engines.length ? engines : ['claude']
 
@@ -26,11 +26,10 @@ export function runInit({ selected, engines, projectDir, force = false, now }) {
     contract,
     pluginRoot: PLUGIN_ROOT,
     projectDir,
-    force,
   })
 
-  // Conflict-gate: при конфликтах без force диск не тронут (мутаций ещё не было).
-  if (planResult.conflicts.length > 0 && !force) {
+  // Conflict-gate: при конфликтах диск не тронут (мутаций ещё не было).
+  if (planResult.conflicts.length > 0) {
     return { manifest: null, conflicts: planResult.conflicts }
   }
 

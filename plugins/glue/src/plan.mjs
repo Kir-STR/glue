@@ -20,7 +20,7 @@ export function engineTarget(engine) {
 
 // Чистый конфликт-алгоритм: решает writes/materialized/deletes/conflicts по
 // targets + prevManifest + diskHashFn. Не читает bundle, не знает про движки.
-export function decidePlan({ targets, prevManifest, diskHashFn, force = false }) {
+export function decidePlan({ targets, prevManifest, diskHashFn }) {
   const prevFiles = new Map((prevManifest?.files ?? []).map((f) => [f.targetPath, f]))
   const writes = []
   const materialized = []
@@ -53,8 +53,6 @@ export function decidePlan({ targets, prevManifest, diskHashFn, force = false })
       })
     } else if (writtenHash !== null && current === writtenHash) {
       writeEntry(writtenHash)
-    } else if (force) {
-      writeEntry(current)
     } else {
       conflicts.push({ targetPath: t.targetPath, reason: 'hash mismatch' })
     }
@@ -66,8 +64,6 @@ export function decidePlan({ targets, prevManifest, diskHashFn, force = false })
     if (current === null) continue
     if (current === f.writtenHash) {
       deletes.push({ targetPath, expectedCurrentHash: f.writtenHash })
-    } else if (force) {
-      deletes.push({ targetPath, expectedCurrentHash: current })
     } else {
       conflicts.push({ targetPath, reason: 'dropped file hand-edited' })
     }
@@ -124,7 +120,7 @@ export function buildTargets({ registry, modules, engines, contract, pluginRoot 
 }
 
 // Тонкая композиция: buildTargets + prevManifest-гейт + diskHashFn + decidePlan.
-export function plan({ registry, modules, engines, contract, pluginRoot, projectDir, force = false }) {
+export function plan({ registry, modules, engines, contract, pluginRoot, projectDir }) {
   const { targets, deliveredEngines } = buildTargets({ registry, modules, engines, contract, pluginRoot })
 
   const raw = readManifest(projectDir)
@@ -136,6 +132,6 @@ export function plan({ registry, modules, engines, contract, pluginRoot, project
     return hashContent(readFileSync(abs, 'utf8'))
   }
 
-  const { writes, materialized, deletes, conflicts } = decidePlan({ targets, prevManifest, diskHashFn, force })
+  const { writes, materialized, deletes, conflicts } = decidePlan({ targets, prevManifest, diskHashFn })
   return { writes, materialized, deletes, conflicts, deliveredEngines }
 }

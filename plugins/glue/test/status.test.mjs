@@ -13,7 +13,7 @@ function tmp() { return mkdtempSync(join(tmpdir(), 'glue-status-')) }
 test('чистая нативная доставка → mode native, пустые наборы', () => {
   const d = tmp()
   try {
-    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, force: false, now: 'T' })
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
     const s = deliveryStatus(d)
     assert.equal(s.mode, 'native')
     assert.deepEqual(s.missing, [])
@@ -47,7 +47,7 @@ test('foreign манифест → fallback, reason unusable-manifest', () => {
 test('правленый файл → changed', () => {
   const d = tmp()
   try {
-    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, force: false, now: 'T' })
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
     writeFileSync(join(d, '.claude/rules/operator-gate.md'), 'ПРАВКА', 'utf8')
     const s = deliveryStatus(d)
     assert.ok(s.changed.includes('.claude/rules/operator-gate.md'))
@@ -112,7 +112,7 @@ test('движок в engines без entry в files → errors, не drift', () 
   const d = tmp()
   try {
     // валидная claude-доставка; затем в манифест дописан codex без файла в files
-    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, force: false, now: 'T' })
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
     const m = readManifest(d)
     m.engines = ['claude', 'codex']
     writeManifest(d, m)
