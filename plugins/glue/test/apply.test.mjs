@@ -85,6 +85,21 @@ test('applyPlan abort на symlink в target', () => {
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
+test('applyPlan: сбой записи на tmp-пути не повреждает существующий target', () => {
+  const d = tmp()
+  try {
+    mkdirSync(join(d, '.claude/rules'), { recursive: true })
+    writeFileSync(join(d, '.claude/rules/a.md'), 'OLD', 'utf8')
+    // ловушка: tmp-путь занят директорией → атомарная запись падает ДО касания target
+    mkdirSync(join(d, '.claude/rules/a.md.tmp'), { recursive: true })
+    assert.throws(() => applyPlan({
+      plan: { writes: [write('.claude/rules/a.md', 'NEW', hashContent('OLD'))], materialized: [], deletes: [] },
+      projectDir: d, engines: ['claude'], modules: ['a'], packVersion: '0.1.0', deliveryId: 'D', completedAt: 'C',
+    }))
+    assert.equal(readFileSync(join(d, '.claude/rules/a.md'), 'utf8'), 'OLD') // target цел
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
 test('applyPlan удаляет файлы из deletes', () => {
   const d = tmp()
   try {

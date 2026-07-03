@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, lstatSync, existsSync, unlinkSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, lstatSync, existsSync, unlinkSync, renameSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { hashContent } from './hash.mjs'
 import { buildManifest, writeManifest, PRODUCER } from './manifest.mjs'
@@ -57,11 +57,14 @@ export function applyPlan({ plan, projectDir, engines, modules, packVersion, del
   for (const entry of writes) toctouCheck(projectDir, entry)
   for (const entry of deletes) toctouCheck(projectDir, entry)
 
-  // Phase 2: мутации
+  // Phase 2: мутации. Запись атомарна (tmp + rename, как у манифеста) —
+  // обрыв посреди записи не оставляет усечённый target.
   for (const entry of writes) {
     const target = safeTargetPath(projectDir, entry.targetPath)
     mkdirSync(dirname(target), { recursive: true })
-    writeFileSync(target, entry.content, 'utf8')
+    const tmpPath = target + '.tmp'
+    writeFileSync(tmpPath, entry.content, 'utf8')
+    renameSync(tmpPath, target)
   }
   for (const entry of deletes) {
     const target = safeTargetPath(projectDir, entry.targetPath)
