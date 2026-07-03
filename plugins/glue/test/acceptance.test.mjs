@@ -88,24 +88,23 @@ test('5: повторный init — идемпотентен, не конфли
   assert.deepEqual(out.conflicts, [])
 })
 
-test('6: правленный файл — конфликт без force; --force перезаписывает', (t) => {
+test('6: правленный файл — конфликт; --force — явная ошибка CLI', (t) => {
   const dir = tmpProject(t)
   runCli(['init', '--modules', 'operator-gate'], dir)
   const target = rulePath(dir, 'operator-gate.md')
-  const planned = readFileSync(target, 'utf8')
   writeFileSync(target, 'tampered by hand\n', 'utf8')
 
   const conflict = runCli(['init', '--modules', 'operator-gate'], dir)
   assert.equal(conflict.exitCode, 0)
   const co = JSON.parse(conflict.stdout)
   assert.equal(co.ok, false)
-  assert.equal(co.manifest, null)
-  assert.ok(co.conflicts.some((c) => c.targetPath === '.claude/rules/operator-gate.md'))
+  assert.equal(co.conflicts.length, 1)
 
   const forced = runCli(['init', '--force', '--modules', 'operator-gate'], dir)
-  assert.equal(forced.exitCode, 0)
-  assert.equal(JSON.parse(forced.stdout).ok, true)
-  assert.equal(readFileSync(target, 'utf8'), planned)
+  assert.equal(forced.exitCode, 1)
+  const err = JSON.parse(forced.stdout)
+  assert.equal(err.ok, false)
+  assert.match(err.error, /--force removed/)
 })
 
 test('7: снятый модуль — неизменённый удалён; правленный — конфликт', (t) => {
