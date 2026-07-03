@@ -59,7 +59,7 @@ test('plan на чистом проекте → все writes, deliveredEngines 
   const d = tmp()
   try {
     const r = plan({
-      registry, modules: ['operator-gate'], engines: ['claude'], contract, pluginRoot: PLUGIN_ROOT, projectDir: d, force: false,
+      registry, modules: ['operator-gate'], engines: ['claude'], contract, pluginRoot: PLUGIN_ROOT, projectDir: d,
     })
     assert.ok(r.writes.length >= 2) // rule + CLAUDE.md
     assert.equal(r.conflicts.length, 0)

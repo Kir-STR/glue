@@ -11,7 +11,7 @@ function tmp() { return mkdtempSync(join(tmpdir(), 'glue-ss-')) }
 test('native валиден → stdout {} , stderr пусто, exit 0, диск не тронут', () => {
   const d = tmp()
   try {
-    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, force: false, now: 'T' })
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
     const before = JSON.stringify(snapshot(d))
     const r = runSessionStart(d)
     assert.equal(r.stdout, '{}')
@@ -41,7 +41,7 @@ test('fallback с usable-манифестом инжектит его modules', 
   const d = tmp()
   try {
     // материализуем доставку, затем ломаем native (правим CLAUDE.md) → fallback
-    runInit({ selected: ['secret-hygiene'], engines: ['claude'], projectDir: d, force: false, now: 'T' })
+    runInit({ selected: ['secret-hygiene'], engines: ['claude'], projectDir: d, now: 'T' })
     writeFileSync(join(d, 'CLAUDE.md'), 'РУЧНАЯ ПРАВКА', 'utf8') // native invalid, манифест usable
     const r = runSessionStart(d)
     const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
@@ -53,7 +53,7 @@ test('usable-манифест с modules:[] → инжект пусто (не de
   const d = tmp()
   try {
     // init без выбора модулей: материализует только инструкц-файл (CLAUDE.md), modules:[]
-    runInit({ selected: [], engines: ['claude'], projectDir: d, force: false, now: 'T' })
+    runInit({ selected: [], engines: ['claude'], projectDir: d, now: 'T' })
     writeFileSync(join(d, 'CLAUDE.md'), 'ПРАВКА', 'utf8') // native invalid, манифест usable, modules:[]
     const r = runSessionStart(d)
     const payload = JSON.parse(r.stdout)

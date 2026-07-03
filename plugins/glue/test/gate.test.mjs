@@ -8,7 +8,7 @@ import { runInit } from '../src/init.mjs'
 
 function tmp() { return mkdtempSync(join(tmpdir(), 'glue-gate-')) }
 // Материализуем реальную нативную доставку (claude) через движок среза 2.
-function seed(d) { runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, force: false, now: 'T' }) }
+function seed(d) { runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' }) }
 
 test('валидная нативная доставка → true', () => {
   const d = tmp()
