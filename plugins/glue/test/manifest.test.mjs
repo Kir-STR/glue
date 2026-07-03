@@ -47,3 +47,9 @@ test('isUsablePrevManifest: glue → true, чужой producerPack → false', (
   assert.equal(isUsablePrevManifest({ schemaVersion: '2', files: [] }), false)
   assert.equal(isUsablePrevManifest(null), false)
 })
+
+test('isUsablePrevManifest: битые files (не-объекты, не-массив) → false, не бросает', () => {
+  assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: [null] }), false)
+  assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: ['строка'] }), false)
+  assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: 42 }), false)
+})
