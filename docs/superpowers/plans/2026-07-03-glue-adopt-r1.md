@@ -22,7 +22,7 @@
 - **Fallback-selection (`session-start`, PR B):** из v2-манифеста берутся `modules[].id`, **отфильтрованные по наличию в bundle registry** (`local`/чужие id пропускаются — лучший effort, не сваливаться в дефолты из-за них).
 - **`referenceTemplate` (greenfield, PR B):** `registry[id].templates[0]` — весь текущий bundle одно-шаблонный; multi-template модуль вне объёма R1.
 - **Adopt и TOCTOU (PR C):** расхождение диска с `expectedCurrentHash` — **ошибка** (`applyPlan` бросает → JSON `{ok:false,error}`, exit 1), не `conflicts`-массив: adopt-план строится на свежем P2-обзоре, расхождение = гонка.
-- **Решения плана сверх спеки** — CLI-поверхность `glue adopt --plan <file>`, скоуп `files[]`, drift-правило для инструкц-файлов, фильтр fallback-selection — **утвердить при ревью плана**; после утверждения — `docs: correct` в спеку одним коммитом (см. фазу E, шаг 0).
+- **Решения плана сверх спеки** — CLI-поверхность `glue adopt --plan <file>`, скоуп `files[]`, drift-правило для инструкц-файлов, фильтр fallback-selection — **утверждены оператором 2026-07-03** и внесены в спеку (`docs: correct`) до старта PR A.
 
 ## Deviations log
 
@@ -839,7 +839,7 @@ allowed-tools: Bash(node:*), Read, Grep, Glob, Write, Task, AskUserQuestion
 
 **P4 — дифф-предложение на базлайне.** Для каждого модуля glue покажи решение и дифф к существующему (существующий файл = базлайн): предложение + одна строка обоснования. Критерий строки: «уберёшь — агент начнёт ошибаться? нет → режь». Per-module accept/reject оператором. Итог каждого модуля — одно из: `added-from-template` / `tailored-from-template` / `adopted-existing` / `merged` / `declined`; существующие правила проекта вне модулей glue → `local` (сохраняются как есть).
 
-**P5 — запись через движок.** Собери adopt-план JSON (форма — `manifest.schema_v2.json` рядом с движком + writes):
+**P5 — запись через движок.** Собери adopt-план JSON (`engines` + `modules[]` в форме манифеста v2 + `writes[]`; отдельной схемы у adopt-плана нет):
 - `modules[]` — все рассмотренные модули с `decision`, `targetPaths`, `referenceTemplate` (у `local` — нет, у `declined` — `targetPaths: []`);
 - `writes[]` — только согласованные записи: `targetPath`, `content` (финальный текст целиком), `sourceTemplate` (имя шаблона или `null` для авторского), `kind` (`rule`/`instruction`), `expectedCurrentHash` (хеш P2-обзора; `null` для нового файла);
 - карту модулей в `CLAUDE.md`/`AGENTS.md` правь тоже диффом (write с `expectedCurrentHash`), чтобы ссылалась на финальный набор, включая `local`.
@@ -899,7 +899,6 @@ git commit -m "chore(glue): release 0.3.0 - semantic adopt"
 
 Не subagent-задача: P1/P3/P4 — операторские гейты. Выполняется в основной сессии после merge D.
 
-- [ ] **Step 0:** `docs: correct` в adopt-спеку — зафиксировать утверждённые при ревью плана решения (CLI `adopt --plan`, скоуп `files[]`, drift-правило инструкц-файлов, фильтр fallback) — если не сделано раньше.
 - [ ] **Step 1:** Запустить `/glue:adopt` на самом репо. Ожидаемые решения (спека § Dogfood acceptance): 9 байт-в-байт модулей → `adopted-existing` (или `added-from-template` — решает оператор по диффу); `review-loop.md` (репо точнее шаблона) → `adopted-existing`, **не перетёрт**; `retro-loop.md` → `local`; `architectural-invariants`/`safety`/`glossary` → `tailored-from-template` (заполнены из кода/ответов) или явные N/A.
 - [ ] **Step 2:** `node plugins/glue/bin/glue.mjs status` → **0 ложного drift**; `integrity` чистая; `errors: []`.
 - [ ] **Step 3:** Изменения репо (заполненные правила, `.glue/manifest.json` — он не gitignored, идёт в git) — отдельный PR `task-dogfood-adopt` с операторским ревью содержания правил.
@@ -910,5 +909,5 @@ git commit -m "chore(glue): release 0.3.0 - semantic adopt"
 ## Self-review (выполнен при написании)
 
 - **Spec coverage:** Problem/`--force` → PR A; Manifest v2 + Greenfield + Shared-contract + F-09 → PR B; Architecture (authored-targets → `applyPlan`) → PR C; Status semantics → B3; Skill protocol P0–P5 + derive-vs-ask → D1; Migration/тест-план → задачи B, кейсы A1/B1–B5/C1–C2; Dogfood acceptance → фаза E.
-- **За спекой (утвердить при ревью плана):** CLI-поверхность `adopt --plan`, `files[]` = только written, drift инструкц-файлов по `sourceTemplate`, фильтр fallback-selection по registry.
+- **За спекой (утверждено оператором 2026-07-03, внесено в спеку):** CLI-поверхность `adopt --plan`, `files[]` = только written, drift инструкц-файлов по `sourceTemplate`, фильтр fallback-selection по registry.
 - **Type consistency:** `modules[]` объекты `{id, decision, targetPaths, referenceTemplate?}` едины в B1/B2/B3/C1/D1/schema; `writes[]` `{targetPath, content, sourceTemplate?, kind?, expectedCurrentHash}` едины в C1/C2/D1; `SCHEMA_VERSION '2'` — единственная константа сравнения.
