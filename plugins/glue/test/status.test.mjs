@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { deliveryStatus } from '../src/status.mjs'
 import { runInit } from '../src/init.mjs'
 import { hashContent } from '../src/hash.mjs'
-import { buildManifest, writeManifest } from '../src/manifest.mjs'
+import { buildManifest, writeManifest, readManifest } from '../src/manifest.mjs'
 
 function tmp() { return mkdtempSync(join(tmpdir(), 'glue-status-')) }
 
@@ -94,6 +94,33 @@ test('битый bundle (unknown module в манифесте) → errors неп
     assert.ok(s.errors.length > 0)        // buildTargets бросил на unknown module
     assert.deepEqual(s.drift, [])         // drift не вычислен
     assert.equal(s.engines.claude.status, 'ok') // CLAUDE.md на диске == written; drift не вычислен → ok
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('манифест с files:[null] → fallback unusable-manifest, не бросает', () => {
+  const d = tmp()
+  try {
+    mkdirSync(join(d, '.glue'), { recursive: true })
+    writeFileSync(join(d, '.glue/manifest.json'), JSON.stringify({ schemaVersion: '1', status: 'complete', engines: ['claude'], modules: [], files: [null] }), 'utf8')
+    const s = deliveryStatus(d)
+    assert.equal(s.mode, 'fallback')
+    assert.equal(s.reason, 'unusable-manifest')
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('движок в engines без entry в files → errors, не drift', () => {
+  const d = tmp()
+  try {
+    // валидная claude-доставка; затем в манифест дописан codex без файла в files
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, force: false, now: 'T' })
+    const m = readManifest(d)
+    m.engines = ['claude', 'codex']
+    writeManifest(d, m)
+    writeFileSync(join(d, 'AGENTS.md'), 'рукописный AGENTS', 'utf8')
+    const s = deliveryStatus(d)
+    assert.ok(s.errors.some((e) => e.includes('codex')))  // несогласованность манифеста — ошибка
+    assert.equal(s.engines.codex, undefined)              // не рапортуется как drift
+    assert.equal(s.engines.claude.status, 'ok')
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 

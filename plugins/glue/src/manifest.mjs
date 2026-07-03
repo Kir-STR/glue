@@ -22,8 +22,11 @@ export function readManifest(projectDir) {
 
 // Можно ли доверять манифесту как prevManifest: наш формат и наш producer.
 // Legacy/чужой манифест (producerPack ≠ 'glue') → не используется для миграции.
+// Битые формы (files не массив, элементы не объекты) → false, не throw.
 export function isUsablePrevManifest(m) {
-  return !!m && m.schemaVersion === SCHEMA_VERSION && (m.files ?? []).every((f) => f.producerPack === PRODUCER)
+  const files = m?.files ?? []
+  return !!m && m.schemaVersion === SCHEMA_VERSION &&
+    Array.isArray(files) && files.every((f) => f?.producerPack === PRODUCER)
 }
 
 // Атомарно: пишем во временный + rename (последним, после всех файлов).

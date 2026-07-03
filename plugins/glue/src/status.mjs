@@ -65,10 +65,12 @@ export function deliveryStatus(projectDir) {
     const targetPath = engineTarget(e)
     if (!targetPath) { errors.push(`неизвестный движок в манифесте: ${e}`); continue }
     const written = writtenByPath.get(targetPath)
+    // Движок заявлен, но файла нет в files — несогласованный манифест: ошибка, не drift.
+    if (written === undefined) { errors.push(`движок '${e}' заявлен без файла ${targetPath} в files`); continue }
     const cur = diskHash(projectDir, targetPath)
     let status
     if (cur === null) status = 'missing'
-    else if (written !== undefined && cur !== written) status = 'changed'
+    else if (cur !== written) status = 'changed'
     else if (plannedByPath && plannedByPath.get(targetPath) !== undefined && plannedByPath.get(targetPath) !== written) status = 'drift'
     else status = 'ok'
     engines[e] = { status, targetPath }

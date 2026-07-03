@@ -29,13 +29,24 @@ function emitUnknown(label) {
 
 function parseCsv(s) { return s.split(',').map((v) => v.trim()).filter(Boolean) }
 
+// Единый JSON-контракт ошибок команд (кроме session-start — тот fail-closed с exit 0).
+function emitError(scope, e) {
+  process.stdout.write(JSON.stringify({ ok: false, error: e.message }, null, 2) + '\n')
+  process.stderr.write(`[glue] ${scope}: ${e.message}\n`)
+  process.exit(1)
+}
+
 if (cmd === 'list') {
   // glue list → плоский список модулей встроенного bundle (JSON)
-  const registry = loadBundle()
-  process.stdout.write(JSON.stringify(listModules(registry), null, 2) + '\n')
+  try {
+    const registry = loadBundle()
+    process.stdout.write(JSON.stringify(listModules(registry), null, 2) + '\n')
+  } catch (e) { emitError('list', e) }
 } else if (cmd === 'status') {
   // glue status → отчёт о состоянии доставки (JSON)
-  process.stdout.write(JSON.stringify(deliveryStatus(PROJECT_DIR), null, 2) + '\n')
+  try {
+    process.stdout.write(JSON.stringify(deliveryStatus(PROJECT_DIR), null, 2) + '\n')
+  } catch (e) { emitError('status', e) }
 } else if (cmd === 'session-start') {
   // SessionStart-хук: native → {}; иначе fallback-инъекция тел правил
   const r = runSessionStart(PROJECT_DIR)
@@ -71,11 +82,7 @@ if (cmd === 'list') {
     const ok = conflicts.length === 0
     process.stdout.write(JSON.stringify({ ok, manifest: ok ? manifest : null, conflicts }, null, 2) + '\n')
     process.exit(0)
-  } catch (e) {
-    process.stdout.write(JSON.stringify({ ok: false, error: e.message }, null, 2) + '\n')
-    process.stderr.write(`[glue] init: ${e.message}\n`)
-    process.exit(1)
-  }
+  } catch (e) { emitError('init', e) }
 } else {
   emitUnknown(cmd)
 }

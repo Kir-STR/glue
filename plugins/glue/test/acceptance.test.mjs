@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, unlinkSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -165,6 +165,28 @@ test('10: честный манифест — engines только реальн�
   const r = runCli(['init', '--modules', 'operator-gate', '--engines', 'claude'], dir)
   const out = JSON.parse(r.stdout)
   assert.deepEqual(out.manifest.engines, ['claude'])
+})
+
+test('11: status при неожиданном throw (неитерируемый engines) → JSON {ok:false}, exit 1', (t) => {
+  const dir = tmpProject(t)
+  mkdirSync(join(dir, '.glue'), { recursive: true })
+  writeFileSync(join(dir, '.glue', 'manifest.json'),
+    JSON.stringify({ schemaVersion: '1', status: 'complete', engines: 42, modules: [], files: [] }), 'utf8')
+  const r = runCli(['status'], dir)
+  assert.equal(r.exitCode, 1)
+  const out = JSON.parse(r.stdout) // JSON, не стектрейс
+  assert.equal(out.ok, false)
+  assert.ok(out.error)
+})
+
+test('12: status с манифестом files:[null] → exit 0, fallback JSON', (t) => {
+  const dir = tmpProject(t)
+  mkdirSync(join(dir, '.glue'), { recursive: true })
+  writeFileSync(join(dir, '.glue', 'manifest.json'),
+    JSON.stringify({ schemaVersion: '1', status: 'complete', engines: ['claude'], modules: [], files: [null] }), 'utf8')
+  const r = runCli(['status'], dir)
+  assert.equal(r.exitCode, 0)
+  assert.equal(JSON.parse(r.stdout).reason, 'unusable-manifest')
 })
 
 test('regression: --help/no-command — JSON error exit 1, не session-start', (t) => {
