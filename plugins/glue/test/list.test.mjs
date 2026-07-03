@@ -4,8 +4,8 @@ import { listModules } from '../src/bundle.mjs'
 
 test('listModules возвращает плоский список с нормализованными полями (включая note)', () => {
   const reg = {
-    'a': { title: 'A', group: 'g1', default: true, note: 'заметка A', templates: ['a.md'], instructionBlock: 'a', dependsOn: [] },
-    'b': { title: 'B', templates: ['b.md'], instructionBlock: 'b', dependsOn: ['a'] },
+    'a': { title: 'A', group: 'g1', default: true, note: 'заметка A', templates: ['a.md'], dependsOn: [] },
+    'b': { title: 'B', templates: ['b.md'], dependsOn: ['a'] },
   }
   const list = listModules(reg)
   assert.deepEqual(list, [

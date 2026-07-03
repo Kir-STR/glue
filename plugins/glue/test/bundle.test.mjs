@@ -21,16 +21,21 @@ test('loadBundle загружает встроенный реестр с 10 мо
   assert.equal(reg['retro-loop'], undefined)
 })
 
+test('validateBundle принимает модуль без instructionBlock (мёртвое поле удалено)', () => {
+  const reg = validateBundle({ x: { title: 'X', templates: ['x.md'], dependsOn: [] } })
+  assert.ok(reg.x)
+})
+
 test('validateBundle отклоняет модуль без title', () => {
   assert.throws(
-    () => validateBundle({ x: { templates: ['x.md'], instructionBlock: 'x', dependsOn: [] } }),
+    () => validateBundle({ x: { templates: ['x.md'], dependsOn: [] } }),
     /title/,
   )
 })
 
 test('validateBundle отклоняет dependsOn на неизвестный модуль', () => {
   assert.throws(
-    () => validateBundle({ a: { title: 'A', templates: ['a.md'], instructionBlock: 'a', dependsOn: ['nope'] } }),
+    () => validateBundle({ a: { title: 'A', templates: ['a.md'], dependsOn: ['nope'] } }),
     /unknown 'nope'/,
   )
 })

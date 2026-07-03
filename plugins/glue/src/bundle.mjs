@@ -20,7 +20,6 @@ export function validateBundle(registry) {
   for (const [id, m] of Object.entries(registry)) {
     if (typeof m?.title !== 'string' || !m.title) errors.push(`${id}: title`)
     if (!Array.isArray(m?.templates) || m.templates.length === 0) errors.push(`${id}: templates`)
-    if (typeof m?.instructionBlock !== 'string') errors.push(`${id}: instructionBlock`)
     if (!Array.isArray(m?.dependsOn)) errors.push(`${id}: dependsOn`)
     for (const dep of m?.dependsOn ?? []) {
       if (!ids.includes(dep)) errors.push(`${id}: dependsOn references unknown '${dep}'`)

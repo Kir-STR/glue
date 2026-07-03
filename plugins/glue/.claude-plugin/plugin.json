@@ -1,5 +1,5 @@
 {
   "name": "glue",
   "version": "0.2.0",
-  "description": "Glue: нативная раскладка правил проекта (один плагин, встроенный контент). Команды: /glue:list, /glue:init, /glue:status; SessionStart-хук с fallback-инъекцией guardrails до init."
+  "description": "Glue: native delivery of modular project rules (single plugin, embedded content). Commands: /glue:list, /glue:init, /glue:status; a SessionStart hook injects fallback guardrails until init."
 }

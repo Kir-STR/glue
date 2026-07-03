@@ -8,7 +8,7 @@
     {
       "name": "glue",
       "source": "./plugins/glue",
-      "description": "Glue: нативная раскладка правил проекта (один плагин, встроенный контент).",
+      "description": "Glue: native delivery of modular project rules (single plugin, embedded content).",
       "author": { "name": "Kirill Bogdanov" }
     }
   ]
