@@ -51,16 +51,15 @@ if (cmd === 'list') {
   if (r.stderr) process.stderr.write(r.stderr)
   process.exit(r.exitCode)
 } else if (cmd === 'init') {
-  // glue init --modules a,b[,c] [--engines claude,codex] [--force]
+  // glue init --modules a,b[,c] [--engines claude,codex]
   // JSON всегда: success/conflicts → exit 0; ошибка аргументов/движка/модуля → exit 1.
   try {
     const flags = process.argv.slice(3)
     let modulesArg = null
     let enginesArg = null
-    let force = false
     for (let i = 0; i < flags.length; i++) {
       const a = flags[i]
-      if (a === '--force') force = true
+      if (a === '--force') throw new Error("--force removed: resolve conflicts manually or use semantic adopt ('replace' mode)")
       else if (a === '--modules') { modulesArg = flagValue(flags, i, '--modules'); i++ }
       else if (a === '--engines') { enginesArg = flagValue(flags, i, '--engines'); i++ }
       else throw new Error(`Unknown argument: ${a}`)
@@ -73,7 +72,6 @@ if (cmd === 'list') {
       selected,
       engines,
       projectDir: PROJECT_DIR,
-      force,
       now: new Date().toISOString(),
     })
     const ok = conflicts.length === 0
