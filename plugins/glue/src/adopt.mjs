@@ -1,7 +1,7 @@
 import { hashContent } from './hash.mjs'
 import { applyPlan } from './apply.mjs'
 import { readPluginVersion, PLUGIN_ROOT } from './bundle.mjs'
-import { KNOWN_ENGINES } from './plan.mjs'
+import { KNOWN_ENGINES, engineTarget } from './plan.mjs'
 
 export const DECISIONS = ['added-from-template', 'tailored-from-template', 'adopted-existing', 'merged', 'declined', 'local']
 
@@ -18,11 +18,21 @@ export function validateAdoptPlan(p) {
     if (!Array.isArray(m?.targetPaths)) errors.push(`${m?.id}: targetPaths array required`)
   }
   if (!Array.isArray(p?.writes)) errors.push('writes: array required')
+  // Спека выводит связь file→module через targetPath ∈ module.targetPaths (поля relation нет) —
+  // план, где связь отсутствует, не принимается.
+  const claimed = new Set((p?.modules ?? []).flatMap((m) => m?.targetPaths ?? []))
+  for (const e of KNOWN_ENGINES) claimed.add(engineTarget(e))
+  const seen = new Set()
   for (const w of p?.writes ?? []) {
     if (typeof w?.targetPath !== 'string' || !w.targetPath) errors.push('write: targetPath required')
     if (typeof w?.content !== 'string') errors.push(`${w?.targetPath}: string content required`)
     if (w?.expectedCurrentHash !== null && typeof w?.expectedCurrentHash !== 'string') {
       errors.push(`${w?.targetPath}: expectedCurrentHash must be hash or null`)
+    }
+    if (typeof w?.targetPath === 'string' && seen.has(w.targetPath)) errors.push(`${w.targetPath}: duplicate write target`)
+    seen.add(w?.targetPath)
+    if (typeof w?.targetPath === 'string' && w.targetPath && !claimed.has(w.targetPath)) {
+      errors.push(`${w.targetPath}: write target not claimed by any module or engine instruction file`)
     }
   }
   if (errors.length) throw new Error('Invalid adopt plan:\n' + errors.join('\n'))

@@ -56,9 +56,56 @@ test('невалидный план: неизвестный decision / нет co
 test('запись вне разрешённой зоны → abort до мутаций', () => {
   const d = tmp()
   try {
+    // Claiming-модуль проводит план через V2-связность: зонный abort — отдельная
+    // защита safeTargetPath в preflight applyPlan, до любых мутаций.
     assert.throws(() => runAdopt({
-      adoptPlan: plan([{ targetPath: 'src/evil.md', content: 'X', expectedCurrentHash: null }]),
+      adoptPlan: {
+        ...plan([{ targetPath: 'src/evil.md', content: 'X', expectedCurrentHash: null }]),
+        modules: [...MODS, { id: 'evil', decision: 'local', targetPaths: ['src/evil.md'] }],
+      },
       projectDir: d, now: 'T',
     }), /outside allowed zone/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('modules-only план (writes: []) → успех, files пуст, decisions записаны', () => {
+  const d = tmp()
+  try {
+    const { manifest } = runAdopt({ adoptPlan: plan([]), projectDir: d, now: 'T' })
+    assert.deepEqual(manifest.files, [])
+    assert.equal(manifest.modules.find((x) => x.id === 'safety').decision, 'tailored-from-template')
+    assert.equal(manifest.modules.find((x) => x.id === 'retro-loop').decision, 'local')
+    assert.equal(manifest.modules.find((x) => x.id === 'glossary').decision, 'declined')
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('дубликат targetPath в writes → Invalid adopt plan / duplicate write target', () => {
+  const d = tmp()
+  try {
+    const w = { targetPath: '.claude/rules/safety.md', content: 'X', expectedCurrentHash: null }
+    assert.throws(() => runAdopt({ adoptPlan: plan([w, { ...w }]), projectDir: d, now: 'T' }), /Invalid adopt plan/)
+    assert.throws(() => runAdopt({ adoptPlan: plan([w, { ...w }]), projectDir: d, now: 'T' }), /duplicate write target/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('write не заявлен ни модулем, ни инструкц-таргетом → Invalid adopt plan', () => {
+  const d = tmp()
+  try {
+    assert.throws(() => runAdopt({
+      adoptPlan: plan([{ targetPath: '.claude/rules/unclaimed.md', content: 'X', expectedCurrentHash: null }]),
+      projectDir: d, now: 'T',
+    }), /Invalid adopt plan/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('write в CLAUDE.md (инструкц-таргет без модуля) — валиден и записывается', () => {
+  const d = tmp()
+  try {
+    const { manifest } = runAdopt({
+      adoptPlan: plan([{ targetPath: 'CLAUDE.md', content: '# Инструкции', sourceTemplate: null, kind: 'instruction', expectedCurrentHash: null }]),
+      projectDir: d, now: 'T',
+    })
+    assert.equal(readFileSync(join(d, 'CLAUDE.md'), 'utf8'), '# Инструкции')
+    assert.equal(manifest.files[0].targetPath, 'CLAUDE.md')
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
