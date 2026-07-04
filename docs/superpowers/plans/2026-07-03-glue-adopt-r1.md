@@ -249,6 +249,8 @@ export function isUsablePrevManifest(m) {
 }
 ```
 
+- [ ] **Step 3.5: Обновить pre-existing ownership-тест.** `manifest.test.mjs`, тест `'isUsablePrevManifest: glue → true, чужой producerPack → false'`: фикстуры мигрируют с v1-литералов на v2 — валидный glue-кейс: `schemaVersion: '2'`, `modules` — массив объектов с минимум `id`, `files` с glue `producerPack`; foreign producerPack остаётся `false`. Версионные ожидания из старого теста убрать — их покрывают три новых кейса B1 (v1 → unusable; v2 битые modules → unusable; v2 валидный → usable).
+
 - [ ] **Step 4: Прогнать manifest-тесты — зелёные** (остальной suite на этом шаге красный — потребители ещё не co-updated; это ожидаемо внутри PR).
 
 - [ ] **Step 5: Commit**
