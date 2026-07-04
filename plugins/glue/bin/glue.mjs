@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // glue — единый плагин. Тонкий диспетчер подкоманд над src/.
-// Реализованы: list (срез 1), status + session-start (срез 3), init (срез 4).
+// Реализованы: list (срез 1), status + session-start (срез 3), init (срез 4), adopt (R1).
 
+import { readFileSync } from 'node:fs'
 import { loadBundle, listModules } from '../src/bundle.mjs'
 import { deliveryStatus } from '../src/status.mjs'
 import { runSessionStart } from '../src/session-start.mjs'
 import { runInit } from '../src/init.mjs'
+import { runAdopt } from '../src/adopt.mjs'
 
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd()
 const [cmd] = process.argv.slice(2)
@@ -78,6 +80,23 @@ if (cmd === 'list') {
     process.stdout.write(JSON.stringify({ ok, manifest: ok ? manifest : null, conflicts }, null, 2) + '\n')
     process.exit(0)
   } catch (e) { emitError('init', e) }
+} else if (cmd === 'adopt') {
+  // glue adopt --plan <file.json> — исполнить авторский adopt-план (контент авторит скилл).
+  // JSON всегда: успех → exit 0; невалидный план/TOCTOU/зона → exit 1.
+  try {
+    const flags = process.argv.slice(3)
+    let planArg = null
+    for (let i = 0; i < flags.length; i++) {
+      const a = flags[i]
+      if (a === '--plan') { planArg = flagValue(flags, i, '--plan'); i++ }
+      else throw new Error(`Unknown argument: ${a}`)
+    }
+    if (planArg === null) throw new Error('Missing required --plan')
+    const adoptPlan = JSON.parse(readFileSync(planArg, 'utf8'))
+    const { manifest } = runAdopt({ adoptPlan, projectDir: PROJECT_DIR, now: new Date().toISOString() })
+    process.stdout.write(JSON.stringify({ ok: true, manifest }, null, 2) + '\n')
+    process.exit(0)
+  } catch (e) { emitError('adopt', e) }
 } else {
   emitUnknown(cmd)
 }

@@ -1,10 +1,24 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { runAdopt } from '../src/adopt.mjs'
 import { hashContent } from '../src/hash.mjs'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const CLI = join(HERE, '..', 'bin', 'glue.mjs')
+
+// Гоняет настоящий бинарь как пользовательский путь (образец — acceptance.test.mjs).
+function runCli(args, projectDir) {
+  const r = spawnSync(process.execPath, [CLI, ...args], {
+    env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir },
+    encoding: 'utf8',
+  })
+  return { stdout: r.stdout, stderr: r.stderr, exitCode: r.status }
+}
 
 function tmp() { return mkdtempSync(join(tmpdir(), 'glue-adopt-')) }
 
@@ -107,5 +121,32 @@ test('write в CLAUDE.md (инструкц-таргет без модуля) —
     })
     assert.equal(readFileSync(join(d, 'CLAUDE.md'), 'utf8'), '# Инструкции')
     assert.equal(manifest.files[0].targetPath, 'CLAUDE.md')
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('CLI adopt: --plan file → ok:true, manifest в stdout', () => {
+  const d = tmp()
+  try {
+    const planPath = join(d, 'adopt-plan.json')
+    writeFileSync(planPath, JSON.stringify(plan([{ targetPath: '.claude/rules/safety.md', content: 'T', sourceTemplate: 'safety.md', kind: 'rule', expectedCurrentHash: null }])), 'utf8')
+    const r = runCli(['adopt', '--plan', planPath], d)
+    assert.equal(r.exitCode, 0)
+    const out = JSON.parse(r.stdout)
+    assert.equal(out.ok, true)
+    assert.equal(out.manifest.schemaVersion, '2')
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('CLI adopt: нет --plan / битый JSON → JSON error, exit 1', () => {
+  const d = tmp()
+  try {
+    const r1 = runCli(['adopt'], d)
+    assert.equal(r1.exitCode, 1)
+    assert.equal(JSON.parse(r1.stdout).ok, false)
+    const bad = join(d, 'bad.json')
+    writeFileSync(bad, '{оборвано', 'utf8')
+    const r2 = runCli(['adopt', '--plan', bad], d)
+    assert.equal(r2.exitCode, 1)
+    assert.equal(JSON.parse(r2.stdout).ok, false)
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
