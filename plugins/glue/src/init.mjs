@@ -1,15 +1,15 @@
 import { loadBundle, loadContract, readPluginVersion, PLUGIN_ROOT } from './bundle.mjs'
 import { resolveDependencies } from './resolve.mjs'
-import { plan, KNOWN_ENGINES } from './plan.mjs'
+import { plan, KNOWN_ENGINES, ruleTargetPath } from './plan.mjs'
 import { applyPlan } from './apply.mjs'
 
 // Greenfield: каждый модуль добавлен дословно из шаблона (спека § Manifest v2, Greenfield под v2).
-// referenceTemplate = templates[0]: текущий bundle одно-шаблонный (Global Constraints).
+// referenceTemplate = templates[0]: текущий bundle одно-шаблонный.
 function toModuleEntries(registry, ids) {
   return ids.map((id) => ({
     id,
     decision: 'added-from-template',
-    targetPaths: registry[id].templates.map((f) => '.claude/rules/' + f),
+    targetPaths: registry[id].templates.map(ruleTargetPath),
     referenceTemplate: registry[id].templates[0],
   }))
 }

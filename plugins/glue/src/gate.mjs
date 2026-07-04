@@ -12,7 +12,7 @@ function isMandatoryClaudeTarget(targetPath) {
 export function nativeDeliveryValid(projectDir) {
   try {
     const m = readManifest(projectDir)
-    if (!isUsablePrevManifest(m)) return false      // нет манифеста / schemaVersion ≠ '1' / foreign producerPack
+    if (!isUsablePrevManifest(m)) return false      // нет манифеста / schemaVersion ≠ '2' / foreign producerPack
     if (m.status !== 'complete') return false
 
     const files = Array.isArray(m.files) ? m.files : []
