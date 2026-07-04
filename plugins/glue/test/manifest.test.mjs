@@ -41,10 +41,10 @@ test('readManifest corrupt JSON → null (не throw)', () => {
 })
 
 test('isUsablePrevManifest: glue → true, чужой producerPack → false', () => {
-  assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: [{ producerPack: PRODUCER }] }), true)
-  assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: [] }), true)
-  assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: [{ producerPack: 'glue-rules' }] }), false)
-  assert.equal(isUsablePrevManifest({ schemaVersion: '2', files: [] }), false)
+  const modules = [{ id: 'operator-gate' }]
+  assert.equal(isUsablePrevManifest({ schemaVersion: '2', modules, files: [{ producerPack: PRODUCER }] }), true)
+  assert.equal(isUsablePrevManifest({ schemaVersion: '2', modules, files: [] }), true)
+  assert.equal(isUsablePrevManifest({ schemaVersion: '2', modules, files: [{ producerPack: 'glue-rules' }] }), false)
   assert.equal(isUsablePrevManifest(null), false)
 })
 
@@ -52,4 +52,25 @@ test('isUsablePrevManifest: битые files (не-объекты, не-масс
   assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: [null] }), false)
   assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: ['строка'] }), false)
   assert.equal(isUsablePrevManifest({ schemaVersion: '1', files: 42 }), false)
+})
+
+test('buildManifest пишет schemaVersion 2 и объектные modules round-trip', () => {
+  const d = tmp()
+  try {
+    const modules = [{ id: 'operator-gate', decision: 'added-from-template', targetPaths: ['.claude/rules/operator-gate.md'], referenceTemplate: 'operator-gate.md' }]
+    const m = buildManifest({ deliveryId: 'T', completedAt: 'T', engines: ['claude'], modules, files: [] })
+    assert.equal(m.schemaVersion, '2')
+    writeManifest(d, m)
+    const r = readManifest(d)
+    assert.deepEqual(r.modules, modules)
+    assert.equal(isUsablePrevManifest(r), true)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('v1-манифест (schemaVersion 1, string modules) → unusable', () => {
+  assert.equal(isUsablePrevManifest({ schemaVersion: '1', modules: ['operator-gate'], files: [] }), false)
+})
+
+test('v2 с битыми modules (строки вместо объектов) → unusable', () => {
+  assert.equal(isUsablePrevManifest({ schemaVersion: '2', modules: ['operator-gate'], files: [] }), false)
 })

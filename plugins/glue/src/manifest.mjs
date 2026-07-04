@@ -1,7 +1,7 @@
 import { writeFileSync, renameSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-export const SCHEMA_VERSION = '1'
+export const SCHEMA_VERSION = '2'
 export const PRODUCER = 'glue'
 const rel = (d) => join(d, '.glue', 'manifest.json')
 
@@ -21,12 +21,13 @@ export function readManifest(projectDir) {
 }
 
 // Можно ли доверять манифесту как prevManifest: наш формат и наш producer.
-// Legacy/чужой манифест (producerPack ≠ 'glue') → не используется для миграции.
-// Битые формы (files не массив, элементы не объекты) → false, не throw.
+// v2: modules — объекты с string id (битые формы → false, не throw).
 export function isUsablePrevManifest(m) {
   const files = m?.files ?? []
+  const modules = m?.modules ?? []
   return !!m && m.schemaVersion === SCHEMA_VERSION &&
-    Array.isArray(files) && files.every((f) => f?.producerPack === PRODUCER)
+    Array.isArray(files) && files.every((f) => f?.producerPack === PRODUCER) &&
+    Array.isArray(modules) && modules.every((x) => typeof x?.id === 'string')
 }
 
 // Атомарно: пишем во временный + rename (последним, после всех файлов).
