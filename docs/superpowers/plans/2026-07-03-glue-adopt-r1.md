@@ -18,7 +18,7 @@
 - **Имена** (файлы, ветки, ключи JSON) — ASCII; контент правил/скиллов — русский; CLI-ошибки — английские (стиль соседей в `bin/glue.mjs`).
 - **Бюджет PR** (`pr-policy`): target 400 / cap 800 строк · 15 файлов, reviewable diff без lock/сгенерированного.
 - **`files[]` манифеста — только written-файлы** (то, что записал `applyPlan`). `adopted-existing`/`local`/`declined` модули записей в `files[]` **не имеют** — их integrity живёт в git проекта, glue ими не владеет. (Решение плана в рамках спеки § Manifest v2: «по одному entry на каждый **управляемый** файл».)
-- **Drift-eligibility (PR B):** файл с модулем → drift только при `decision === 'added-from-template'`; файл без модуля (инструкц-файлы) → drift только при непустом `sourceTemplate` (greenfield пишет из `.tmpl` → eligible; adopt авторит → `sourceTemplate: null` → ineligible). `buildTargets` для drift получает **только** id модулей `added-from-template` — id `local`-модулей нет в bundle registry и уронили бы рехеш.
+- **Drift-eligibility (PR B):** файл с модулем → drift только при `decision === 'added-from-template'`; файл без модуля (инструкц-файлы) → drift только при непустом `sourceTemplate` (greenfield пишет из `.tmpl` → eligible; adopt авторит → `sourceTemplate: null` → ineligible). Реконструкция bundle-targets (`buildTargets`) — по **всем не-`local`** id модулей манифеста (инструкц-файлу нужен полный состав карты на момент записи; исключение `tailored` даёт ложный drift `CLAUDE.md`); `local`-id нет в bundle — исключаются; не-`local` id вне bundle → `catch` → `errors`. Eligibility — отдельно и без изменений.
 - **Fallback-selection (`session-start`, PR B):** из v2-манифеста берутся `modules[].id`, **отфильтрованные по наличию в bundle registry** (`local`/чужие id пропускаются — лучший effort, не сваливаться в дефолты из-за них).
 - **`referenceTemplate` (greenfield, PR B):** `registry[id].templates[0]` — весь текущий bundle одно-шаблонный; multi-template модуль вне объёма R1.
 - **Adopt и TOCTOU (PR C):** расхождение диска с `expectedCurrentHash` — **ошибка** (`applyPlan` бросает → JSON `{ok:false,error}`, exit 1), не `conflicts`-массив: adopt-план строится на свежем P2-обзоре, расхождение = гонка.
@@ -388,8 +388,10 @@ Drift-блок (строки 46–60): в `buildTargets` передавать т
   try {
     const contract = loadContract(PLUGIN_ROOT)
     const registry = loadBundle(PLUGIN_ROOT, contract)
-    const templatedIds = (m.modules ?? []).filter((x) => x.decision === 'added-from-template').map((x) => x.id)
-    const { targets } = buildTargets({ registry, modules: templatedIds, engines: m.engines ?? [], contract, pluginRoot: PLUGIN_ROOT })
+    // Реконструкция — полный состав карты на момент записи: все не-local id
+    // (local нет в bundle; не-local id вне bundle → catch → errors — сигнал битости).
+    const bundleIds = (m.modules ?? []).filter((x) => x.decision !== 'local').map((x) => x.id)
+    const { targets } = buildTargets({ registry, modules: bundleIds, engines: m.engines ?? [], contract, pluginRoot: PLUGIN_ROOT })
     plannedByPath = new Map(targets.map((t) => [t.targetPath, t.plannedHash]))
     for (const f of files) {
       const planned = plannedByPath.get(f.targetPath)
