@@ -581,6 +581,25 @@ git commit -m "feat(glue): manifest v2 contract file (F-09)"
 **Files:**
 - Create: `plugins/glue/src/adopt.mjs`
 - Test: `plugins/glue/test/adopt.test.mjs`
+- Test: `plugins/glue/test/manifest.test.mjs` (key-set кросс-чек — перенос из quality-ревью B5)
+
+**Step 0 (перенос из B5): key-set кросс-чек схемы против фактического producer'а** — дозаписать в `manifest.test.mjs` (ловит молчаливое устаревание контракт-файла при переименовании ключей в `toModuleEntries`/`toManifestFileEntry`):
+
+```js
+test('manifest.schema_v2.json: ключи реального манифеста ⊆ схемы', () => {
+  const schema = JSON.parse(readFileSync(new URL('../manifest.schema_v2.json', import.meta.url), 'utf8'))
+  const modProps = Object.keys(schema.properties.modules.items.properties)
+  const fileProps = Object.keys(schema.properties.files.items.properties)
+  const d = tmp()
+  try {
+    const { manifest } = runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
+    for (const mod of manifest.modules) assert.deepEqual(Object.keys(mod).filter((k) => !modProps.includes(k)), [])
+    for (const f of manifest.files) assert.deepEqual(Object.keys(f).filter((k) => !fileProps.includes(k)), [])
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+```
+
+(Импорт `runInit` в manifest.test добавить при отсутствии.)
 
 **Interfaces:**
 - Consumes: `hashContent` (`hash.mjs`), `applyPlan` (`apply.mjs`), `readPluginVersion`/`PLUGIN_ROOT` (`bundle.mjs`), `KNOWN_ENGINES` (`plan.mjs`).
