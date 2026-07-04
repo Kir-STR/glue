@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "glue delivery manifest v2",
+  "type": "object",
+  "required": ["schemaVersion", "deliveryId", "completedAt", "engines", "modules", "status", "files"],
+  "properties": {
+    "schemaVersion": { "const": "2" },
+    "deliveryId": { "type": "string" },
+    "completedAt": { "type": "string" },
+    "status": { "enum": ["complete"] },
+    "engines": { "type": "array", "items": { "type": "string" } },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "decision", "targetPaths"],
+        "properties": {
+          "id": { "type": "string" },
+          "decision": { "enum": ["added-from-template", "tailored-from-template", "adopted-existing", "merged", "declined", "local"] },
+          "targetPaths": { "type": "array", "items": { "type": "string" } },
+          "referenceTemplate": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["producerPack", "packVersion", "targetPath", "writtenHash"],
+        "properties": {
+          "producerPack": { "type": "string" },
+          "packVersion": { "type": "string" },
+          "targetPath": { "type": "string" },
+          "writtenHash": { "type": "string" },
+          "sourceTemplate": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

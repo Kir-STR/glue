@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import {
@@ -73,4 +73,17 @@ test('v1-манифест (schemaVersion 1, string modules) → unusable', () =>
 
 test('v2 с битыми modules (строки вместо объектов) → unusable', () => {
   assert.equal(isUsablePrevManifest({ schemaVersion: '2', modules: ['operator-gate'], files: [] }), false)
+})
+
+test('isUsablePrevManifest: битые modules (null-элемент, не-массив) → false, не throw', () => {
+  assert.equal(isUsablePrevManifest({ schemaVersion: '2', modules: [null], files: [] }), false)
+  assert.equal(isUsablePrevManifest({ schemaVersion: '2', modules: 42, files: [] }), false)
+})
+
+test('manifest.schema_v2.json парсится и перечисляет все 6 decision', () => {
+  const schema = JSON.parse(readFileSync(new URL('../manifest.schema_v2.json', import.meta.url), 'utf8'))
+  assert.deepEqual(
+    schema.properties.modules.items.properties.decision.enum,
+    ['added-from-template', 'tailored-from-template', 'adopted-existing', 'merged', 'declined', 'local']
+  )
 })
