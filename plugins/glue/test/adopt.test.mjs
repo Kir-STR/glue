@@ -124,6 +124,72 @@ test('write в CLAUDE.md (инструкц-таргет без модуля) —
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
+test('инструкц-таргет незаявленного движка: engines [claude], write в AGENTS.md → reject', () => {
+  const d = tmp()
+  try {
+    assert.throws(() => runAdopt({
+      adoptPlan: plan([{ targetPath: 'AGENTS.md', content: 'X', expectedCurrentHash: null }]),
+      projectDir: d, now: 'T',
+    }), /Invalid adopt plan/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('backslash в targetPath (write и modules.targetPaths) → reject', () => {
+  const d = tmp()
+  try {
+    assert.throws(() => runAdopt({
+      adoptPlan: {
+        ...plan([{ targetPath: '.claude\\rules\\bs.md', content: 'X', expectedCurrentHash: null }]),
+        modules: [...MODS, { id: 'bs', decision: 'local', targetPaths: ['.claude\\rules\\bs.md'] }],
+      },
+      projectDir: d, now: 'T',
+    }), /use forward slashes/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('write в .glue/ → reject (манифест — артефакт движка)', () => {
+  const d = tmp()
+  try {
+    assert.throws(() => runAdopt({
+      adoptPlan: {
+        ...plan([{ targetPath: '.glue/manifest.json', content: '{}', expectedCurrentHash: null }]),
+        modules: [...MODS, { id: 'g', decision: 'local', targetPaths: ['.glue/manifest.json'] }],
+      },
+      projectDir: d, now: 'T',
+    }), /engine-owned/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('дубликат id в modules → reject', () => {
+  const d = tmp()
+  try {
+    assert.throws(() => runAdopt({
+      adoptPlan: { ...plan([]), modules: [...MODS, { ...MODS[1] }] },
+      projectDir: d, now: 'T',
+    }), /duplicate module id/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('не-строка в modules.targetPaths → reject', () => {
+  const d = tmp()
+  try {
+    assert.throws(() => runAdopt({
+      adoptPlan: { ...plan([]), modules: [...MODS, { id: 'n', decision: 'local', targetPaths: [42] }] },
+      projectDir: d, now: 'T',
+    }), /targetPaths element must be string/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('declined с непустым targetPaths → reject', () => {
+  const d = tmp()
+  try {
+    assert.throws(() => runAdopt({
+      adoptPlan: { ...plan([]), modules: [...MODS, { id: 'dcl', decision: 'declined', targetPaths: ['.claude/rules/dcl.md'], referenceTemplate: 'dcl.md' }] },
+      projectDir: d, now: 'T',
+    }), /declined module must have empty targetPaths/)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
 test('CLI adopt: --plan file → ok:true, manifest в stdout', () => {
   const d = tmp()
   try {
@@ -148,5 +214,8 @@ test('CLI adopt: нет --plan / битый JSON → JSON error, exit 1', () => 
     const r2 = runCli(['adopt', '--plan', bad], d)
     assert.equal(r2.exitCode, 1)
     assert.equal(JSON.parse(r2.stdout).ok, false)
+    const r3 = runCli(['adopt', '--plan', join(d, 'no-such.json')], d)
+    assert.equal(r3.exitCode, 1)
+    assert.equal(JSON.parse(r3.stdout).ok, false)
   } finally { rmSync(d, { recursive: true, force: true }) }
 })

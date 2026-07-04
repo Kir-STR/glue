@@ -12,16 +12,30 @@ export function validateAdoptPlan(p) {
     errors.push(`engines: array of known engines required (${KNOWN_ENGINES.join(', ')})`)
   }
   if (!Array.isArray(p?.modules) || p.modules.length === 0) errors.push('modules: non-empty array required')
+  const seenModuleIds = new Set()
   for (const m of p?.modules ?? []) {
     if (typeof m?.id !== 'string' || !m.id) errors.push('module: string id required')
+    if (typeof m?.id === 'string' && seenModuleIds.has(m.id)) errors.push(`${m.id}: duplicate module id`)
+    seenModuleIds.add(m?.id)
     if (!DECISIONS.includes(m?.decision)) errors.push(`${m?.id}: unknown decision '${m?.decision}'`)
     if (!Array.isArray(m?.targetPaths)) errors.push(`${m?.id}: targetPaths array required`)
+    for (const tp of Array.isArray(m?.targetPaths) ? m.targetPaths : []) {
+      if (typeof tp !== 'string') errors.push(`${m?.id}: targetPaths element must be string`)
+      // Манифест хранит путь дословно; backslash ломает строковые gate-предикаты.
+      else if (tp.includes('\\')) errors.push(`${tp}: use forward slashes in targetPath`)
+    }
+    if (m?.decision === 'declined' && Array.isArray(m?.targetPaths) && m.targetPaths.length > 0) {
+      errors.push(`${m?.id}: declined module must have empty targetPaths`)
+    }
   }
   if (!Array.isArray(p?.writes)) errors.push('writes: array required')
   // Спека выводит связь file→module через targetPath ∈ module.targetPaths (поля relation нет) —
-  // план, где связь отсутствует, не принимается.
+  // план, где связь отсутствует, не принимается. Instruction-таргеты — только заявленных движков.
   const claimed = new Set((p?.modules ?? []).flatMap((m) => m?.targetPaths ?? []))
-  for (const e of KNOWN_ENGINES) claimed.add(engineTarget(e))
+  for (const e of Array.isArray(p?.engines) ? p.engines : []) {
+    const t = engineTarget(e)
+    if (t) claimed.add(t)
+  }
   const seen = new Set()
   for (const w of p?.writes ?? []) {
     if (typeof w?.targetPath !== 'string' || !w.targetPath) errors.push('write: targetPath required')
@@ -31,6 +45,10 @@ export function validateAdoptPlan(p) {
     }
     if (typeof w?.targetPath === 'string' && seen.has(w.targetPath)) errors.push(`${w.targetPath}: duplicate write target`)
     seen.add(w?.targetPath)
+    if (typeof w?.targetPath === 'string' && w.targetPath.includes('\\')) errors.push(`${w.targetPath}: use forward slashes in targetPath`)
+    if (typeof w?.targetPath === 'string' && (w.targetPath === '.glue' || w.targetPath.startsWith('.glue/'))) {
+      errors.push(`${w.targetPath}: .glue/ is engine-owned, not writable by adopt plan`)
+    }
     if (typeof w?.targetPath === 'string' && w.targetPath && !claimed.has(w.targetPath)) {
       errors.push(`${w.targetPath}: write target not claimed by any module or engine instruction file`)
     }
