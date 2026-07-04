@@ -409,10 +409,12 @@ Drift-блок (строки 46–60): в `buildTargets` передавать т
     else if (planned !== undefined && planned !== written && fileByPath.get(targetPath)?.sourceTemplate) status = 'drift'
 ```
 
-- [ ] **Step 3: Полный прогон status-тестов — зелёные**; Commit:
+- [ ] **Step 2.5: Миграция pre-existing фикстур потребителей** (тот же класс, что B1 Step 3.5): (а) `status.test.mjs` — тесты с рукотворными манифестами формы `modules: ['operator-gate']` (drift по writtenHash; битый bundle/unknown module) → v2-объекты (`[{ id, decision: 'added-from-template', targetPaths, referenceTemplate }]`; для unknown-module кейса id остаётся несуществующим — интент теста сохраняется); ожидания тестов не менять. (б) `acceptance.test.mjs`, тест 11 (status при неитерируемом `engines` → JSON `{ok:false}`, exit 1): рукотворный манифест `schemaVersion: '1'` → v2-форма (объектные `modules`, glue `producerPack`), `engines: 42` сохранить — интент (throw внутри status → JSON error) не менять.
+
+- [ ] **Step 3: Полный прогон status-тестов — зелёные**; Commit (миграции фикстур — в этом же коммите):
 
 ```bash
-git add plugins/glue/src/status.mjs plugins/glue/test/status.test.mjs
+git add plugins/glue/src/status.mjs plugins/glue/test/status.test.mjs plugins/glue/test/acceptance.test.mjs
 git commit -m "feat(glue): status v2 — per-decision drift eligibility"
 ```
 
@@ -428,18 +430,20 @@ git commit -m "feat(glue): status v2 — per-decision drift eligibility"
 test('fallback: v2-манифест → выбор из manifest.modules, не дефолты', () => {
   const d = tmp()
   try {
-    runInit({ selected: ['secret-hygiene'], engines: ['claude'], projectDir: d, now: 'T' })
+    // versioning — НЕ default-модуль: тихий откат к дефолтам не совпадёт с ожиданием.
+    runInit({ selected: ['versioning'], engines: ['claude'], projectDir: d, now: 'T' })
     rmSync(join(d, 'CLAUDE.md')) // ломаем native → fallback
     const r = runSessionStart(d)
     const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
-    assert.match(ctx, /Secret hygiene|секрет/i)
+    assert.match(ctx, /версионировани/i)      // тело versioning.md инжектировано
+    assert.doesNotMatch(ctx, /Operator-gate/) // дефолты НЕ подтянулись
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
 test('fallback: local-модуль в манифесте не сваливает выбор в дефолты', () => {
   const d = tmp()
   try {
-    runInit({ selected: ['secret-hygiene'], engines: ['claude'], projectDir: d, now: 'T' })
+    runInit({ selected: ['versioning'], engines: ['claude'], projectDir: d, now: 'T' })
     const p = join(d, '.glue', 'manifest.json')
     const m = JSON.parse(readFileSync(p, 'utf8'))
     m.modules.push({ id: 'retro-loop', decision: 'local', targetPaths: ['.claude/rules/retro-loop.md'] })
@@ -447,13 +451,13 @@ test('fallback: local-модуль в манифесте не сваливает
     rmSync(join(d, 'CLAUDE.md'))
     const r = runSessionStart(d)
     const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
-    assert.match(ctx, /секрет/i)          // выбранный модуль инжектирован
-    assert.doesNotMatch(ctx, /operator-gate/) // дефолты НЕ подтянулись
+    assert.match(ctx, /версионировани/i)      // выбранный модуль инжектирован
+    assert.doesNotMatch(ctx, /Operator-gate/) // дефолты НЕ подтянулись
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 ```
 
-(Regex сверить с реальным телом модуля `secret-hygiene.md` на месте; проверяется выбор, не проза.)
+(Regex сверить с реальным телом `versioning.md` / заголовком `operator-gate.md` на месте; проверяется выбор, не проза. Дефолт-модули bundle: `operator-gate`, `secret-hygiene` — для теста выбора обязателен non-default, иначе тихий откат к дефолтам неотличим от успеха.)
 
 - [ ] **Step 2: Реализация**
 
