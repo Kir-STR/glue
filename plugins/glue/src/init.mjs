@@ -3,6 +3,17 @@ import { resolveDependencies } from './resolve.mjs'
 import { plan, KNOWN_ENGINES } from './plan.mjs'
 import { applyPlan } from './apply.mjs'
 
+// Greenfield: каждый модуль добавлен дословно из шаблона (спека § Manifest v2, Greenfield под v2).
+// referenceTemplate = templates[0]: текущий bundle одно-шаблонный (Global Constraints).
+function toModuleEntries(registry, ids) {
+  return ids.map((id) => ({
+    id,
+    decision: 'added-from-template',
+    targetPaths: registry[id].templates.map((f) => '.claude/rules/' + f),
+    referenceTemplate: registry[id].templates[0],
+  }))
+}
+
 // Программный оркестратор: resolve → plan → conflict-gate → apply. Не CLI.
 export function runInit({ selected, engines, projectDir, now }) {
   // Движки: пуст/нет → claude; иначе как есть (не авто-добавлять claude).
@@ -37,7 +48,7 @@ export function runInit({ selected, engines, projectDir, now }) {
     plan: planResult,
     projectDir,
     engines: planResult.deliveredEngines,
-    modules: resolvedIds,
+    modules: toModuleEntries(registry, resolvedIds),
     packVersion: readPluginVersion(PLUGIN_ROOT),
     deliveryId: now,
     completedAt: now,
