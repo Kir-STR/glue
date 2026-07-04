@@ -602,8 +602,9 @@ test('manifest.schema_v2.json: ключи реального манифеста 
 (Импорт `runInit` в manifest.test добавить при отсутствии.)
 
 **Interfaces:**
-- Consumes: `hashContent` (`hash.mjs`), `applyPlan` (`apply.mjs`), `readPluginVersion`/`PLUGIN_ROOT` (`bundle.mjs`), `KNOWN_ENGINES` (`plan.mjs`).
+- Consumes: `hashContent` (`hash.mjs`), `applyPlan` (`apply.mjs`), `readPluginVersion`/`PLUGIN_ROOT` (`bundle.mjs`), `KNOWN_ENGINES`/`engineTarget` (`plan.mjs`).
 - Produces: `runAdopt({ adoptPlan, projectDir, now }) → { manifest }`; бросает на невалидном плане/TOCTOU/symlink/зоне.
+- **Валидация (дополнено по quality-ревью C1, утверждено оператором):** + уникальность `writes[].targetPath`; + связность — каждый write-таргет ∈ ∪`modules[].targetPaths` либо инструкц-таргет (`engineTarget`); кросс-чек `DECISIONS` ↔ enum схемы; regression на валидный `writes: []` (modules-only).
 
 **Форма adopt-плана (вход, авторится скиллом):**
 
