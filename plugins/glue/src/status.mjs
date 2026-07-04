@@ -34,7 +34,11 @@ export function deliveryStatus(projectDir) {
   const errors = []
   const missing = []
   const changed = []
-  const writtenByPath = new Map(files.map((f) => [f.targetPath, f.writtenHash]))
+  const fileByPath = new Map(files.map((f) => [f.targetPath, f]))
+  const moduleByPath = new Map()
+  for (const mod of m.modules ?? []) {
+    for (const tp of mod.targetPaths ?? []) moduleByPath.set(tp, mod)
+  }
 
   // disk-vs-manifest (без buildTargets)
   for (const f of files) {
@@ -43,17 +47,25 @@ export function deliveryStatus(projectDir) {
     else if (cur !== f.writtenHash) changed.push(f.targetPath)
   }
 
-  // drift через текущий plannedHash (buildTargets); ошибка → errors, drift пуст
+  // drift через текущий plannedHash (buildTargets); ошибка → errors, drift пуст.
+  // Eligibility: модульный файл — только decision 'added-from-template';
+  // безмодульный (инструкц-) — только если писался из шаблона (sourceTemplate).
   const drift = []
   let plannedByPath = null
   try {
     const contract = loadContract(PLUGIN_ROOT)
     const registry = loadBundle(PLUGIN_ROOT, contract)
-    const { targets } = buildTargets({ registry, modules: m.modules ?? [], engines: m.engines ?? [], contract, pluginRoot: PLUGIN_ROOT })
+    // Реконструкция — полный состав карты на момент записи: все не-local id
+    // (local нет в bundle; не-local id вне bundle → catch → errors — сигнал битости).
+    const bundleIds = (m.modules ?? []).filter((x) => x.decision !== 'local').map((x) => x.id)
+    const { targets } = buildTargets({ registry, modules: bundleIds, engines: m.engines ?? [], contract, pluginRoot: PLUGIN_ROOT })
     plannedByPath = new Map(targets.map((t) => [t.targetPath, t.plannedHash]))
     for (const f of files) {
       const planned = plannedByPath.get(f.targetPath)
-      if (planned !== undefined && planned !== f.writtenHash) drift.push(f.targetPath)
+      if (planned === undefined || planned === f.writtenHash) continue
+      const mod = moduleByPath.get(f.targetPath)
+      const eligible = mod ? mod.decision === 'added-from-template' : !!f.sourceTemplate
+      if (eligible) drift.push(f.targetPath)
     }
   } catch (e) {
     errors.push(`drift не вычислен: ${e.message}`)
@@ -64,7 +76,7 @@ export function deliveryStatus(projectDir) {
   for (const e of m.engines ?? []) {
     const targetPath = engineTarget(e)
     if (!targetPath) { errors.push(`неизвестный движок в манифесте: ${e}`); continue }
-    const written = writtenByPath.get(targetPath)
+    const written = fileByPath.get(targetPath)?.writtenHash
     // Движок заявлен, но файла нет в files — несогласованный манифест: ошибка, не drift.
     if (written === undefined) { errors.push(`движок '${e}' заявлен без файла ${targetPath} в files`); continue }
     const cur = diskHash(projectDir, targetPath)
@@ -72,7 +84,7 @@ export function deliveryStatus(projectDir) {
     let status
     if (cur === null) status = 'missing'
     else if (cur !== written) status = 'changed'
-    else if (planned !== undefined && planned !== written) status = 'drift'
+    else if (planned !== undefined && planned !== written && fileByPath.get(targetPath)?.sourceTemplate) status = 'drift'
     else status = 'ok'
     engines[e] = { status, targetPath }
   }

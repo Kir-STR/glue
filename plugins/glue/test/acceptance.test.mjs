@@ -170,7 +170,7 @@ test('11: status при неожиданном throw (неитерируемый
   const dir = tmpProject(t)
   mkdirSync(join(dir, '.glue'), { recursive: true })
   writeFileSync(join(dir, '.glue', 'manifest.json'),
-    JSON.stringify({ schemaVersion: '1', status: 'complete', engines: 42, modules: [], files: [] }), 'utf8')
+    JSON.stringify({ schemaVersion: '2', status: 'complete', engines: 42, modules: [], files: [] }), 'utf8')
   const r = runCli(['status'], dir)
   assert.equal(r.exitCode, 1)
   const out = JSON.parse(r.stdout) // JSON, не стектрейс

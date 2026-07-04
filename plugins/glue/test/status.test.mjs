@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { deliveryStatus } from '../src/status.mjs'
@@ -9,6 +9,19 @@ import { hashContent } from '../src/hash.mjs'
 import { buildManifest, writeManifest, readManifest } from '../src/manifest.mjs'
 
 function tmp() { return mkdtempSync(join(tmpdir(), 'glue-status-')) }
+
+// Хелпер: manifest v2 с заданным decision для одного управляемого файла.
+function seedAdoptLike(d, decision) {
+  runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
+  const p = join(d, '.glue', 'manifest.json')
+  const m = JSON.parse(readFileSync(p, 'utf8'))
+  m.modules.find((x) => x.id === 'operator-gate').decision = decision
+  // Контент отличается от шаблона → кандидат в drift.
+  const target = join(d, '.claude', 'rules', 'operator-gate.md')
+  writeFileSync(target, 'ПРОЕКТНАЯ ВЕРСИЯ', 'utf8')
+  m.files.find((f) => f.targetPath === '.claude/rules/operator-gate.md').writtenHash = hashContent('ПРОЕКТНАЯ ВЕРСИЯ')
+  writeFileSync(p, JSON.stringify(m), 'utf8')
+}
 
 test('чистая нативная доставка → mode native, пустые наборы', () => {
   const d = tmp()
@@ -66,7 +79,8 @@ test('drift: writtenHash старого контента, диск == written, �
     writeFileSync(join(d, '.claude/rules/operator-gate.md'), ruleOld, 'utf8')
     writeFileSync(join(d, 'CLAUDE.md'), claudeOld, 'utf8')
     const m = buildManifest({
-      deliveryId: 'T', completedAt: 'T', engines: ['claude'], modules: ['operator-gate'],
+      deliveryId: 'T', completedAt: 'T', engines: ['claude'],
+      modules: [{ id: 'operator-gate', decision: 'added-from-template', targetPaths: ['.claude/rules/operator-gate.md'], referenceTemplate: 'operator-gate.md' }],
       files: [
         { producerPack: 'glue', packVersion: '0.1.0', sourceTemplate: 'operator-gate.md', targetPath: '.claude/rules/operator-gate.md', writtenHash: hashContent(ruleOld) },
         { producerPack: 'glue', packVersion: '0.1.0', sourceTemplate: 'CLAUDE.md.tmpl', targetPath: 'CLAUDE.md', writtenHash: hashContent(claudeOld) },
@@ -86,7 +100,8 @@ test('битый bundle (unknown module в манифесте) → errors неп
     mkdirSync(join(d, '.claude/rules'), { recursive: true })
     writeFileSync(join(d, 'CLAUDE.md'), 'C', 'utf8')
     const m = buildManifest({
-      deliveryId: 'T', completedAt: 'T', engines: ['claude'], modules: ['nonexistent-module'],
+      deliveryId: 'T', completedAt: 'T', engines: ['claude'],
+      modules: [{ id: 'nonexistent-module', decision: 'added-from-template', targetPaths: ['.claude/rules/nonexistent-module.md'], referenceTemplate: 'nonexistent-module.md' }],
       files: [{ producerPack: 'glue', packVersion: '0.1.0', sourceTemplate: 'CLAUDE.md.tmpl', targetPath: 'CLAUDE.md', writtenHash: hashContent('C') }],
     })
     writeManifest(d, m)
@@ -141,5 +156,37 @@ test('target-путь — директория на диске → не брос
     let s
     assert.doesNotThrow(() => { s = deliveryStatus(d) })
     assert.ok(Array.isArray(s.missing)) // деградировал, не упал
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('drift: added-from-template с отличием от шаблона → drift', () => {
+  const d = tmp()
+  try {
+    seedAdoptLike(d, 'added-from-template')
+    const s = deliveryStatus(d)
+    assert.deepEqual(s.drift, ['.claude/rules/operator-gate.md'])
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('drift: tailored-from-template с отличием от шаблона → НЕ drift', () => {
+  const d = tmp()
+  try {
+    seedAdoptLike(d, 'tailored-from-template')
+    const s = deliveryStatus(d)
+    assert.deepEqual(s.drift, [])
+    assert.deepEqual(s.errors, [])
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('drift: local-модуль (id вне bundle) не роняет рехеш', () => {
+  const d = tmp()
+  try {
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
+    const p = join(d, '.glue', 'manifest.json')
+    const m = JSON.parse(readFileSync(p, 'utf8'))
+    m.modules.push({ id: 'retro-loop', decision: 'local', targetPaths: ['.claude/rules/retro-loop.md'] })
+    writeFileSync(p, JSON.stringify(m), 'utf8')
+    const s = deliveryStatus(d)
+    assert.deepEqual(s.errors, [])
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
