@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import {
   buildManifest, readManifest, writeManifest, isUsablePrevManifest, SCHEMA_VERSION, PRODUCER,
 } from '../src/manifest.mjs'
+import { runInit } from '../src/init.mjs'
 
 function tmp() { return mkdtempSync(join(tmpdir(), 'glue-mf-')) }
 
@@ -86,4 +87,16 @@ test('manifest.schema_v2.json парсится и перечисляет все 
     schema.properties.modules.items.properties.decision.enum,
     ['added-from-template', 'tailored-from-template', 'adopted-existing', 'merged', 'declined', 'local']
   )
+})
+
+test('manifest.schema_v2.json: ключи реального манифеста ⊆ схемы', () => {
+  const schema = JSON.parse(readFileSync(new URL('../manifest.schema_v2.json', import.meta.url), 'utf8'))
+  const modProps = Object.keys(schema.properties.modules.items.properties)
+  const fileProps = Object.keys(schema.properties.files.items.properties)
+  const d = tmp()
+  try {
+    const { manifest } = runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
+    for (const mod of manifest.modules) assert.deepEqual(Object.keys(mod).filter((k) => !modProps.includes(k)), [])
+    for (const f of manifest.files) assert.deepEqual(Object.keys(f).filter((k) => !fileProps.includes(k)), [])
+  } finally { rmSync(d, { recursive: true, force: true }) }
 })
