@@ -7,7 +7,7 @@
     "schemaVersion": { "const": "2" },
     "deliveryId": { "type": "string" },
     "completedAt": { "type": "string" },
-    "status": { "enum": ["complete"] },
+    "status": { "const": "complete" },
     "engines": { "type": "array", "items": { "type": "string" } },
     "modules": {
       "type": "array",
@@ -19,7 +19,8 @@
           "decision": { "enum": ["added-from-template", "tailored-from-template", "adopted-existing", "merged", "declined", "local"] },
           "targetPaths": { "type": "array", "items": { "type": "string" } },
           "referenceTemplate": { "type": ["string", "null"] }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "files": {
@@ -33,7 +34,8 @@
           "targetPath": { "type": "string" },
           "writtenHash": { "type": "string" },
           "sourceTemplate": { "type": ["string", "null"] }
-        }
+        },
+        "additionalProperties": false
       }
     }
   }

@@ -18,6 +18,10 @@ export function engineTarget(engine) {
   return ENGINE_INSTRUCTIONS[engine]?.[1] ?? null
 }
 
+// Целевой путь rule-файла. Контрактный ключ: status матчит manifest.modules[].targetPaths
+// с files[].targetPath строковым равенством — конвенция обязана совпадать у producer'ов.
+export const ruleTargetPath = (file) => '.claude/rules/' + file
+
 // Чистый конфликт-алгоритм: решает writes/materialized/deletes/conflicts по
 // targets + prevManifest + diskHashFn. Не читает bundle, не знает про движки.
 export function decidePlan({ targets, prevManifest, diskHashFn }) {
@@ -89,7 +93,7 @@ export function buildTargets({ registry, modules, engines, contract, pluginRoot 
     for (const file of mod.templates) {
       const content = readFileSync(join(pluginRoot, contract.modulesDir, file), 'utf8')
       targets.push({
-        targetPath: '.claude/rules/' + file,
+        targetPath: ruleTargetPath(file),
         plannedHash: hashContent(content),
         content,
         sourceTemplate: file,

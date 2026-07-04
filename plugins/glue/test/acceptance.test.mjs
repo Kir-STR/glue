@@ -182,7 +182,7 @@ test('12: status с манифестом files:[null] → exit 0, fallback JSON'
   const dir = tmpProject(t)
   mkdirSync(join(dir, '.glue'), { recursive: true })
   writeFileSync(join(dir, '.glue', 'manifest.json'),
-    JSON.stringify({ schemaVersion: '1', status: 'complete', engines: ['claude'], modules: [], files: [null] }), 'utf8')
+    JSON.stringify({ schemaVersion: '2', status: 'complete', engines: ['claude'], modules: [], files: [null] }), 'utf8')
   const r = runCli(['status'], dir)
   assert.equal(r.exitCode, 0)
   assert.equal(JSON.parse(r.stdout).reason, 'unusable-manifest')

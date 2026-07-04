@@ -67,10 +67,11 @@ test('usable-манифест с modules:[] → инжект пусто (не de
 test('foreign-манифест (producerPack glue-rules) → fallback defaults, НЕ его modules', () => {
   const d = tmp()
   try {
-    // foreign-манифест: schemaVersion '1', но чужой producerPack; modules — не-дефолтный (glossary).
+    // foreign-манифест: schemaVersion '2', но чужой producerPack; modules — не-дефолтный (glossary).
     mkdirSync(join(d, '.glue'), { recursive: true })
     writeFileSync(join(d, '.glue/manifest.json'), JSON.stringify({
-      schemaVersion: '1', status: 'complete', engines: ['claude'], modules: ['glossary'],
+      schemaVersion: '2', status: 'complete', engines: ['claude'],
+      modules: [{ id: 'glossary', decision: 'added-from-template', targetPaths: ['.claude/rules/glossary.md'] }],
       files: [{ producerPack: 'glue-rules', targetPath: 'CLAUDE.md', writtenHash: 'x' }],
     }), 'utf8')
     const r = runSessionStart(d)

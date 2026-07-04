@@ -51,7 +51,7 @@ test('foreign манифест → fallback, reason unusable-manifest', () => {
   const d = tmp()
   try {
     mkdirSync(join(d, '.glue'), { recursive: true })
-    writeFileSync(join(d, '.glue/manifest.json'), JSON.stringify({ schemaVersion: '1', status: 'complete', engines: ['claude'], modules: [], files: [{ producerPack: 'glue-rules', targetPath: 'CLAUDE.md', writtenHash: 'x' }] }), 'utf8')
+    writeFileSync(join(d, '.glue/manifest.json'), JSON.stringify({ schemaVersion: '2', status: 'complete', engines: ['claude'], modules: [], files: [{ producerPack: 'glue-rules', targetPath: 'CLAUDE.md', writtenHash: 'x' }] }), 'utf8')
     const s = deliveryStatus(d)
     assert.equal(s.reason, 'unusable-manifest')
   } finally { rmSync(d, { recursive: true, force: true }) }
@@ -116,7 +116,7 @@ test('манифест с files:[null] → fallback unusable-manifest, не бр
   const d = tmp()
   try {
     mkdirSync(join(d, '.glue'), { recursive: true })
-    writeFileSync(join(d, '.glue/manifest.json'), JSON.stringify({ schemaVersion: '1', status: 'complete', engines: ['claude'], modules: [], files: [null] }), 'utf8')
+    writeFileSync(join(d, '.glue/manifest.json'), JSON.stringify({ schemaVersion: '2', status: 'complete', engines: ['claude'], modules: [], files: [null] }), 'utf8')
     const s = deliveryStatus(d)
     assert.equal(s.mode, 'fallback')
     assert.equal(s.reason, 'unusable-manifest')
@@ -190,5 +190,21 @@ test('drift: local-модуль (id вне bundle) не роняет рехеш'
     writeFileSync(p, JSON.stringify(m), 'utf8')
     const s = deliveryStatus(d)
     assert.deepEqual(s.errors, [])
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('drift: манифест только из local-модулей → bundleIds пуст, не бросает', () => {
+  const d = tmp()
+  try {
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
+    const p = join(d, '.glue', 'manifest.json')
+    const m = JSON.parse(readFileSync(p, 'utf8'))
+    m.modules = [{ id: 'retro-loop', decision: 'local', targetPaths: ['.claude/rules/retro-loop.md'] }]
+    // Адопт-реалистичная форма: у all-local манифеста инструкц-файл authored → не drift-eligible.
+    m.files.find((f) => f.targetPath === 'CLAUDE.md').sourceTemplate = null
+    writeFileSync(p, JSON.stringify(m), 'utf8')
+    const s = deliveryStatus(d)
+    assert.deepEqual(s.errors, [])
+    assert.deepEqual(s.drift, [])
   } finally { rmSync(d, { recursive: true, force: true }) }
 })

@@ -13,6 +13,7 @@ function resolvedDefaults(registry) {
 // Выбор модулей для fallback-инъекции (R1):
 //  - манифест usable (isUsablePrevManifest — наш формат и наш producerPack) + resolve успешно
 //    → его modules (в т.ч. [] → пусто);
+//  - id вне bundle registry (local/чужие) отфильтровываются до resolve — не «неразрешимо», выбор не сваливается в дефолты;
 //  - иначе (нет/corrupt/unsupported/foreign/неразрешимо) → resolved defaults. Никогда «все» неявно.
 //  Единый критерий «наш usable-манифест» по всему коду: хук не читает legacy/foreign-манифест
 //  как источник выбора (согласуется с «не читать legacy ради миграции», срез 2).

@@ -49,7 +49,7 @@ export function deliveryStatus(projectDir) {
 
   // drift через текущий plannedHash (buildTargets); ошибка → errors, drift пуст.
   // Eligibility: модульный файл — только decision 'added-from-template';
-  // безмодульный (инструкц-) — только если писался из шаблона (sourceTemplate).
+  // безмодульный (инструкционный файл, напр. CLAUDE.md) — только если писался из шаблона (sourceTemplate).
   const drift = []
   let plannedByPath = null
   try {
@@ -76,7 +76,8 @@ export function deliveryStatus(projectDir) {
   for (const e of m.engines ?? []) {
     const targetPath = engineTarget(e)
     if (!targetPath) { errors.push(`неизвестный движок в манифесте: ${e}`); continue }
-    const written = fileByPath.get(targetPath)?.writtenHash
+    const file = fileByPath.get(targetPath)
+    const written = file?.writtenHash
     // Движок заявлен, но файла нет в files — несогласованный манифест: ошибка, не drift.
     if (written === undefined) { errors.push(`движок '${e}' заявлен без файла ${targetPath} в files`); continue }
     const cur = diskHash(projectDir, targetPath)
@@ -84,7 +85,7 @@ export function deliveryStatus(projectDir) {
     let status
     if (cur === null) status = 'missing'
     else if (cur !== written) status = 'changed'
-    else if (planned !== undefined && planned !== written && fileByPath.get(targetPath)?.sourceTemplate) status = 'drift'
+    else if (planned !== undefined && planned !== written && file?.sourceTemplate) status = 'drift'
     else status = 'ok'
     engines[e] = { status, targetPath }
   }
