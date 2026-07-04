@@ -604,7 +604,7 @@ test('manifest.schema_v2.json: ключи реального манифеста 
 **Interfaces:**
 - Consumes: `hashContent` (`hash.mjs`), `applyPlan` (`apply.mjs`), `readPluginVersion`/`PLUGIN_ROOT` (`bundle.mjs`), `KNOWN_ENGINES`/`engineTarget` (`plan.mjs`).
 - Produces: `runAdopt({ adoptPlan, projectDir, now }) → { manifest }`; бросает на невалидном плане/TOCTOU/symlink/зоне.
-- **Валидация (дополнено по quality-ревью C1, утверждено оператором):** + уникальность `writes[].targetPath`; + связность — каждый write-таргет ∈ ∪`modules[].targetPaths` либо инструкц-таргет (`engineTarget`); кросс-чек `DECISIONS` ↔ enum схемы; regression на валидный `writes: []` (modules-only).
+- **Валидация (дополнено по ревью C1 и финальным ревью PR C, утверждено оператором):** + уникальность `writes[].targetPath`; + связность — каждый write-таргет ∈ ∪`modules[].targetPaths` либо инструкц-таргет **заявленного** движка (`engineTarget` по `p.engines`); + только forward-slash в путях; + `.glue/` закрыта для writes; + уникальные `id` модулей, строковые `targetPaths`, `declined` только с `targetPaths: []`; кросс-чек `DECISIONS` ↔ enum схемы; regression на валидный `writes: []` (modules-only). Backlog (вне R1): re-adopt deletes/сжатие; канонизация `..`; вынос `runCli` в общий тест-хелпер (маркер 2/3); имя файла в JSON.parse-ошибках CLI.
 
 **Форма adopt-плана (вход, авторится скиллом):**
 
