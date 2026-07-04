@@ -19,7 +19,10 @@ function resolvedDefaults(registry) {
 function selectFallbackModules(projectDir, registry) {
   const m = readManifest(projectDir)
   if (isUsablePrevManifest(m)) {
-    try { return resolveDependencies(registry, m.modules ?? []) } catch { return resolvedDefaults(registry) }
+    // v2: объекты → id; local/неизвестные bundle id пропускаем (лучший effort,
+    // не сваливаться в дефолты из-за них).
+    const ids = (m.modules ?? []).map((x) => x.id).filter((id) => registry[id])
+    try { return resolveDependencies(registry, ids) } catch { return resolvedDefaults(registry) }
   }
   return resolvedDefaults(registry)
 }

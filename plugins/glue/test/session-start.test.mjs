@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs'
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runSessionStart } from '../src/session-start.mjs'
@@ -77,6 +77,35 @@ test('foreign-манифест (producerPack glue-rules) → fallback defaults, 
     const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
     assert.match(ctx, /operator-gate|Operator-gate/i)   // defaults инжектированы
     assert.doesNotMatch(ctx, /Глоссарий|Glossary/i)     // foreign modules (glossary) НЕ инжектированы
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('fallback: v2-манифест → выбор из manifest.modules, не дефолты', () => {
+  const d = tmp()
+  try {
+    // versioning — НЕ default-модуль: тихий откат к дефолтам не совпадёт с ожиданием.
+    runInit({ selected: ['versioning'], engines: ['claude'], projectDir: d, now: 'T' })
+    rmSync(join(d, 'CLAUDE.md')) // ломаем native → fallback
+    const r = runSessionStart(d)
+    const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
+    assert.match(ctx, /версионировани/i)      // тело versioning.md инжектировано
+    assert.doesNotMatch(ctx, /Operator-gate/) // дефолты НЕ подтянулись
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
+test('fallback: local-модуль в манифесте не сваливает выбор в дефолты', () => {
+  const d = tmp()
+  try {
+    runInit({ selected: ['versioning'], engines: ['claude'], projectDir: d, now: 'T' })
+    const p = join(d, '.glue', 'manifest.json')
+    const m = JSON.parse(readFileSync(p, 'utf8'))
+    m.modules.push({ id: 'retro-loop', decision: 'local', targetPaths: ['.claude/rules/retro-loop.md'] })
+    writeFileSync(p, JSON.stringify(m), 'utf8')
+    rmSync(join(d, 'CLAUDE.md'))
+    const r = runSessionStart(d)
+    const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
+    assert.match(ctx, /версионировани/i)      // выбранный модуль инжектирован
+    assert.doesNotMatch(ctx, /Operator-gate/) // дефолты НЕ подтянулись
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
