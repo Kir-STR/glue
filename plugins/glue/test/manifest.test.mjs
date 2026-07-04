@@ -7,6 +7,7 @@ import {
   buildManifest, readManifest, writeManifest, isUsablePrevManifest, SCHEMA_VERSION, PRODUCER,
 } from '../src/manifest.mjs'
 import { runInit } from '../src/init.mjs'
+import { DECISIONS } from '../src/adopt.mjs'
 
 function tmp() { return mkdtempSync(join(tmpdir(), 'glue-mf-')) }
 
@@ -87,6 +88,7 @@ test('manifest.schema_v2.json парсится и перечисляет все 
     schema.properties.modules.items.properties.decision.enum,
     ['added-from-template', 'tailored-from-template', 'adopted-existing', 'merged', 'declined', 'local']
   )
+  assert.deepEqual(DECISIONS, schema.properties.modules.items.properties.decision.enum)
 })
 
 test('manifest.schema_v2.json: ключи реального манифеста ⊆ схемы', () => {
