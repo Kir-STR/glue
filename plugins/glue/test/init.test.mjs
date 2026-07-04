@@ -39,12 +39,25 @@ test('runInit явный codex → НЕ добавляет claude', () => {
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
+test('greenfield-манифест v2: каждый модуль added-from-template', () => {
+  const d = tmp()
+  try {
+    const { manifest } = runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
+    assert.equal(manifest.schemaVersion, '2')
+    const mod = manifest.modules.find((x) => x.id === 'operator-gate')
+    assert.equal(mod.decision, 'added-from-template')
+    assert.deepEqual(mod.targetPaths, ['.claude/rules/operator-gate.md'])
+    assert.equal(mod.referenceTemplate, 'operator-gate.md')
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
 test('runInit разрешает зависимости (pr-policy → worktree-workflow)', () => {
   const d = tmp()
   try {
     const { manifest } = runInit({ selected: ['pr-policy'], engines: ['claude'], projectDir: d, now: 'T' })
-    assert.ok(manifest.modules.includes('worktree-workflow'))
-    assert.ok(manifest.modules.indexOf('worktree-workflow') < manifest.modules.indexOf('pr-policy'))
+    const ids = manifest.modules.map((m) => m.id)
+    assert.ok(ids.includes('worktree-workflow'))
+    assert.ok(ids.indexOf('worktree-workflow') < ids.indexOf('pr-policy'))
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
