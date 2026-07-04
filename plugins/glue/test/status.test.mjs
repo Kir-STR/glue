@@ -146,7 +146,8 @@ test('target-путь — директория на диске → не брос
     mkdirSync(join(d, '.claude/rules/operator-gate.md'), { recursive: true }) // путь-файл, но это каталог
     writeFileSync(join(d, 'CLAUDE.md'), 'C', 'utf8')
     const m = buildManifest({
-      deliveryId: 'T', completedAt: 'T', engines: ['claude'], modules: ['operator-gate'],
+      deliveryId: 'T', completedAt: 'T', engines: ['claude'],
+      modules: [{ id: 'operator-gate', decision: 'added-from-template', targetPaths: ['.claude/rules/operator-gate.md'], referenceTemplate: 'operator-gate.md' }],
       files: [
         { producerPack: 'glue', packVersion: '0.1.0', sourceTemplate: 'operator-gate.md', targetPath: '.claude/rules/operator-gate.md', writtenHash: hashContent('X') },
         { producerPack: 'glue', packVersion: '0.1.0', sourceTemplate: 'CLAUDE.md.tmpl', targetPath: 'CLAUDE.md', writtenHash: hashContent('C') },
@@ -155,6 +156,7 @@ test('target-путь — директория на диске → не брос
     writeManifest(d, m)
     let s
     assert.doesNotThrow(() => { s = deliveryStatus(d) })
+    assert.notEqual(s.reason, 'unusable-manifest') // манифест usable — дошли до diskHash, не вакуумный fallback
     assert.ok(Array.isArray(s.missing)) // деградировал, не упал
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
