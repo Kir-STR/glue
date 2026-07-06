@@ -29,6 +29,7 @@ export function validateAdoptPlan(p) {
     }
   }
   if (!Array.isArray(p?.writes)) errors.push('writes: array required')
+  if (p?.materialized !== undefined && !Array.isArray(p.materialized)) errors.push('materialized: array required')
   // Спека выводит связь file→module через targetPath ∈ module.targetPaths (поля relation нет) —
   // план, где связь отсутствует, не принимается. Instruction-таргеты — только заявленных движков.
   const claimed = new Set((p?.modules ?? []).flatMap((m) => m?.targetPaths ?? []))
@@ -37,20 +38,42 @@ export function validateAdoptPlan(p) {
     if (t) claimed.add(t)
   }
   const seen = new Set()
+  const checkTargetPath = (w, label) => {
+    if (typeof w?.targetPath !== 'string' || !w.targetPath) { errors.push(`${label}: targetPath required`); return }
+    if (seen.has(w.targetPath)) errors.push(`${w.targetPath}: duplicate write target`)
+    seen.add(w.targetPath)
+    if (w.targetPath.includes('\\')) errors.push(`${w.targetPath}: use forward slashes in targetPath`)
+    if (w.targetPath === '.glue' || w.targetPath.startsWith('.glue/')) {
+      errors.push(`${w.targetPath}: .glue/ is engine-owned, not writable by adopt plan`)
+    }
+    if (!claimed.has(w.targetPath)) {
+      errors.push(`${w.targetPath}: write target not claimed by any module or engine instruction file`)
+    }
+  }
   for (const w of p?.writes ?? []) {
-    if (typeof w?.targetPath !== 'string' || !w.targetPath) errors.push('write: targetPath required')
+    checkTargetPath(w, 'write')
     if (typeof w?.content !== 'string') errors.push(`${w?.targetPath}: string content required`)
     if (w?.expectedCurrentHash !== null && typeof w?.expectedCurrentHash !== 'string') {
       errors.push(`${w?.targetPath}: expectedCurrentHash must be hash or null`)
     }
-    if (typeof w?.targetPath === 'string' && seen.has(w.targetPath)) errors.push(`${w.targetPath}: duplicate write target`)
-    seen.add(w?.targetPath)
-    if (typeof w?.targetPath === 'string' && w.targetPath.includes('\\')) errors.push(`${w.targetPath}: use forward slashes in targetPath`)
-    if (typeof w?.targetPath === 'string' && (w.targetPath === '.glue' || w.targetPath.startsWith('.glue/'))) {
-      errors.push(`${w.targetPath}: .glue/ is engine-owned, not writable by adopt plan`)
+  }
+  for (const w of Array.isArray(p?.materialized) ? p.materialized : []) {
+    checkTargetPath(w, 'materialized')
+    // materialized = «файл остаётся как есть»: планировщик обязан был видеть содержимое, null недопустим.
+    if (typeof w?.expectedCurrentHash !== 'string') {
+      errors.push(`${w?.targetPath}: materialized requires string expectedCurrentHash`)
     }
-    if (typeof w?.targetPath === 'string' && w.targetPath && !claimed.has(w.targetPath)) {
-      errors.push(`${w.targetPath}: write target not claimed by any module or engine instruction file`)
+  }
+  // Манифест перезаписывается доставкой целиком — непокрытый таргет выпадает из отслеживания status,
+  // а движок без инструкц-файла в files даёт fallback. Полнота обязательна на входе.
+  for (const e of Array.isArray(p?.engines) ? p.engines : []) {
+    const t = engineTarget(e)
+    if (t && !seen.has(t)) errors.push(`engine '${e}': instruction file ${t} not covered by writes or materialized`)
+  }
+  for (const m of p?.modules ?? []) {
+    if (m?.decision === 'local' || m?.decision === 'declined') continue
+    for (const tp of Array.isArray(m?.targetPaths) ? m.targetPaths : []) {
+      if (typeof tp === 'string' && !seen.has(tp)) errors.push(`${m?.id}: ${tp} not covered by writes or materialized`)
     }
   }
   if (errors.length) throw new Error('Invalid adopt plan:\n' + errors.join('\n'))
@@ -70,13 +93,25 @@ export function buildAuthoredWrites(writes) {
   }))
 }
 
+// Materialized-targets: файлы, остающиеся как есть, но входящие в manifest.files
+// (plannedHash = expectedCurrentHash — содержимое, которое видел P2-обзор; apply перепроверит TOCTOU).
+export function buildAuthoredMaterialized(materialized) {
+  return materialized.map((w) => ({
+    targetPath: w.targetPath,
+    plannedHash: w.expectedCurrentHash,
+    sourceTemplate: w.sourceTemplate ?? null,
+    kind: w.kind ?? 'rule',
+    expectedCurrentHash: w.expectedCurrentHash,
+  }))
+}
+
 // Оркестратор adopt: validate → authored writes → applyPlan (манифест v2 последним).
 // Расхождение диска с expectedCurrentHash — ошибка (гонка после P2-обзора), не conflicts:
 // план строится на свежем P2-обзоре.
 export function runAdopt({ adoptPlan, projectDir, now }) {
   const p = validateAdoptPlan(adoptPlan)
   const manifest = applyPlan({
-    plan: { writes: buildAuthoredWrites(p.writes) },
+    plan: { writes: buildAuthoredWrites(p.writes), materialized: buildAuthoredMaterialized(p.materialized ?? []) },
     projectDir,
     engines: p.engines,
     modules: p.modules,

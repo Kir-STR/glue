@@ -17,6 +17,7 @@ test('current == plannedHash → materialized (recovery)', () => {
   assert.equal(r.writes.length, 0)
   assert.equal(r.materialized.length, 1)
   assert.equal(r.materialized[0].plannedHash, 'H')
+  assert.equal(r.materialized[0].expectedCurrentHash, 'H') // TOCTOU-ожидание для preflight apply
 })
 
 test('managed и current == writtenHash → write (update)', () => {

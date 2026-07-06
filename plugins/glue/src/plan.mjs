@@ -54,6 +54,8 @@ export function decidePlan({ targets, prevManifest, diskHashFn }) {
         plannedHash: t.plannedHash,
         sourceTemplate: t.sourceTemplate,
         kind: t.kind,
+        // Диск равен плану на момент планирования; preflight apply перепроверит (TOCTOU).
+        expectedCurrentHash: t.plannedHash,
       })
     } else if (writtenHash !== null && current === writtenHash) {
       writeEntry(writtenHash)

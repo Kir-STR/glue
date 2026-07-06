@@ -53,8 +53,10 @@ const toManifestFileEntry = (packVersion) => (entry) => ({
 export function applyPlan({ plan, projectDir, engines, modules, packVersion, deliveryId, completedAt }) {
   const { writes = [], materialized = [], deletes = [] } = plan
 
-  // Phase 1: batch preflight до любой мутации
+  // Phase 1: batch preflight до любой мутации. Materialized тоже: их writtenHash
+  // попадает в манифест — диск обязан всё ещё соответствовать увиденному планировщиком.
   for (const entry of writes) toctouCheck(projectDir, entry)
+  for (const entry of materialized) toctouCheck(projectDir, entry)
   for (const entry of deletes) toctouCheck(projectDir, entry)
 
   // Phase 2: мутации. Запись атомарна (tmp + rename, как у манифеста) —
