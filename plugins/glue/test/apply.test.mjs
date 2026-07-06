@@ -41,6 +41,19 @@ test('applyPlan включает materialized в манифест без пер�
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
+test('applyPlan abort при materialized-рассинхроне, манифест не записан', () => {
+  const d = tmp()
+  try {
+    mkdirSync(join(d, '.claude/rules'), { recursive: true })
+    writeFileSync(join(d, '.claude/rules/m.md'), 'DISK', 'utf8')
+    assert.throws(() => applyPlan({
+      plan: { writes: [], materialized: [{ targetPath: '.claude/rules/m.md', plannedHash: hashContent('SEEN'), sourceTemplate: 'm.md', kind: 'rule', expectedCurrentHash: hashContent('SEEN') }], deletes: [] },
+      projectDir: d, engines: ['claude'], modules: ['m'], packVersion: '0.1.0', deliveryId: 'D', completedAt: 'C',
+    }), /TOCTOU abort/)
+    assert.equal(existsSync(join(d, '.glue', 'manifest.json')), false)
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
 test('applyPlan abort на TOCTOU-рассинхрон до любой записи', () => {
   const d = tmp()
   try {
