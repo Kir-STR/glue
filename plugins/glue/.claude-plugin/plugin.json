@@ -1,5 +1,5 @@
 {
   "name": "glue",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Glue: native delivery of modular project rules (single plugin, embedded content). Commands: /glue:list, /glue:init, /glue:adopt (semantic init over existing rules), /glue:status; a SessionStart hook injects fallback guardrails until init."
 }
