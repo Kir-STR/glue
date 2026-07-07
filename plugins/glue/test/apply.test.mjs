@@ -54,6 +54,21 @@ test('applyPlan abort при materialized-рассинхроне, манифес
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
+test('applyPlan re-verify перед записью: файл появился после preflight → abort', () => {
+  // Ловушка гонки без хуков: два write на один путь. Batch-preflight обоих
+  // проходит (файла нет), первая запись создаёт файл — re-verify второй
+  // обязан увидеть «file appeared» и оборвать пачку до записи и манифеста.
+  const d = tmp()
+  try {
+    assert.throws(() => applyPlan({
+      plan: { writes: [write('.claude/rules/a.md', 'FIRST'), write('.claude/rules/a.md', 'SECOND')], materialized: [], deletes: [] },
+      projectDir: d, engines: ['claude'], modules: ['a'], packVersion: '0.1.0', deliveryId: 'D', completedAt: 'C',
+    }), /TOCTOU abort: file appeared since planning/)
+    assert.equal(readFileSync(join(d, '.claude/rules/a.md'), 'utf8'), 'FIRST') // вторая запись не случилась
+    assert.equal(existsSync(join(d, '.glue', 'manifest.json')), false) // манифест не опубликован
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
 test('applyPlan abort на TOCTOU-рассинхрон до любой записи', () => {
   const d = tmp()
   try {
