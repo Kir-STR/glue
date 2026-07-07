@@ -11,9 +11,12 @@ import { safeTargetPath } from './paths.mjs'
 //   undefined → нет ожидания (в плановых entries не используется).
 function toctouCheck(projectDir, entry) {
   const target = safeTargetPath(projectDir, entry.targetPath)
+  // Один lstat вместо пары existsSync+lstatSync: и меньше обращений к ФС,
+  // и нет окна «файл исчез между exists и lstat» с сырым ENOENT.
+  const stat = lstatSync(target, { throwIfNoEntry: false })
 
-  if (existsSync(target)) {
-    if (lstatSync(target).isSymbolicLink()) {
+  if (stat) {
+    if (stat.isSymbolicLink()) {
       throw new Error(`abort: symlink at target path: ${entry.targetPath}`)
     }
     // Планировщик видел отсутствие, а файл появился между plan и apply → abort
@@ -60,8 +63,13 @@ export function applyPlan({ plan, projectDir, engines, modules, packVersion, del
   for (const entry of deletes) toctouCheck(projectDir, entry)
 
   // Phase 2: мутации. Запись атомарна (tmp + rename, как у манифеста) —
-  // обрыв посреди записи не оставляет усечённый target.
+  // обрыв посреди записи не оставляет усечённый target. Re-verify перед каждой
+  // мутацией: batch-preflight оставляет окно длиной во всю пачку — повторная
+  // сверка сжимает его до зазора «прочитал → rename» (неустранимого на уровне ФС).
+  // Mid-batch abort оставляет частичное применение без манифеста — status покажет
+  // расхождение, повторный прогон со свежим обзором чинит.
   for (const entry of writes) {
+    toctouCheck(projectDir, entry)
     const target = safeTargetPath(projectDir, entry.targetPath)
     mkdirSync(dirname(target), { recursive: true })
     const tmpPath = target + '.tmp'
@@ -69,6 +77,7 @@ export function applyPlan({ plan, projectDir, engines, modules, packVersion, del
     renameSync(tmpPath, target)
   }
   for (const entry of deletes) {
+    toctouCheck(projectDir, entry)
     const target = safeTargetPath(projectDir, entry.targetPath)
     if (existsSync(target)) unlinkSync(target)
   }
