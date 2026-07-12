@@ -37,12 +37,24 @@ test('нет манифеста → fallback инжектит defaults (тела
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
+test('правленое правило (файл на месте) → native молчит, без инъекции', () => {
+  const d = tmp()
+  try {
+    // Вариант A: ручная правка правила не роняет native — ноль инъекции поверх живого правила.
+    runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
+    writeFileSync(join(d, '.claude/rules/operator-gate.md'), 'ПРОЕКТНАЯ ПРАВКА ПРАВИЛА', 'utf8')
+    const r = runSessionStart(d)
+    assert.equal(r.stdout, '{}')                       // native — ничего не впрыснуто
+    assert.doesNotMatch(r.stdout, /systemMessage/)     // и нет UX-шума
+  } finally { rmSync(d, { recursive: true, force: true }) }
+})
+
 test('fallback с usable-манифестом инжектит его modules', () => {
   const d = tmp()
   try {
-    // материализуем доставку, затем ломаем native (правим CLAUDE.md) → fallback
+    // материализуем доставку, затем ломаем native (удаляем CLAUDE.md) → fallback
     runInit({ selected: ['secret-hygiene'], engines: ['claude'], projectDir: d, now: 'T' })
-    writeFileSync(join(d, 'CLAUDE.md'), 'РУЧНАЯ ПРАВКА', 'utf8') // native invalid, манифест usable
+    rmSync(join(d, 'CLAUDE.md')) // native invalid (файл отсутствует), манифест usable
     const r = runSessionStart(d)
     const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext
     assert.match(ctx, /secret|hygiene/i) // инжектит выбранный модуль из манифеста
@@ -54,7 +66,7 @@ test('usable-манифест с modules:[] → инжект пусто (не de
   try {
     // init без выбора модулей: материализует только инструкц-файл (CLAUDE.md), modules:[]
     runInit({ selected: [], engines: ['claude'], projectDir: d, now: 'T' })
-    writeFileSync(join(d, 'CLAUDE.md'), 'ПРАВКА', 'utf8') // native invalid, манифест usable, modules:[]
+    rmSync(join(d, 'CLAUDE.md')) // native invalid (файл отсутствует), манифест usable, modules:[]
     const r = runSessionStart(d)
     const payload = JSON.parse(r.stdout)
     const ctx = payload.hookSpecificOutput.additionalContext
