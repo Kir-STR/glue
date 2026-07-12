@@ -63,6 +63,7 @@ test('правленый файл → changed', () => {
     runInit({ selected: ['operator-gate'], engines: ['claude'], projectDir: d, now: 'T' })
     writeFileSync(join(d, '.claude/rules/operator-gate.md'), 'ПРАВКА', 'utf8')
     const s = deliveryStatus(d)
+    assert.equal(s.mode, 'native') // вариант A: файл на месте → native, расхождение видно как changed
     assert.ok(s.changed.includes('.claude/rules/operator-gate.md'))
     assert.equal(s.engines.claude.status, 'ok') // CLAUDE.md не тронут
   } finally { rmSync(d, { recursive: true, force: true }) }
