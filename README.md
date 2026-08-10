@@ -36,6 +36,8 @@ Not yet implemented — this is the direction, not current behavior:
 
 The intended future model: a decision justifies a constraint, a constraint applies within a skill and environment, and a check produces a policy decision that the host can act on. Glue is meant to resolve *which* constraints apply to an agent action and explain the resulting decision — the host stays responsible for execution and enforcement.
 
+The target architecture boundary is described in [docs/product-boundary_v1.md](docs/product-boundary_v1.md).
+
 ## What Glue is not
 
 - It does not write application code.
