@@ -26,14 +26,14 @@ class: discipline
 
 `review-bot` может не видеть gitignored / локальные доки (планы, спеки) — в rejection-комментах цитировать текст секции spec inline, не только путь; так же inline-цитировать секции `.claude/rules/*.md`, на которые опирается обоснование. Формулировать независимо от доступа («цитируем inline, чтобы обоснование не зависело от доступа review-агента»).
 
-**Citation self-verify до публикации** (reject / audit-trail / supplementary comment) — три волатильные точки:
+**Citation self-verify до публикации** (reject / audit-trail / supplementary comment) — две волатильные точки:
 
 - **reader-accessibility** — не цитировать gitignored / local-only файлы (`ideas_4_rules.md`, `retro-*.md`, `.claude/settings.local.json`, `.env*`): PR-readers не резолвят их ни на каком SHA. Либо inline-quote содержимое, либо reanchor на public-артефакт (commit SHA, merged docs).
 - **code file:line anchor** — грепать точную строку в текущем дереве до публикации комментария. Неточность в опубликованном комменте остаётся в истории навсегда.
 
 ## Verify upstream guarantee до rejection-комментария
 
-Если rejection опирается на цитирование вышестоящей гарантии (safety / sanitization / валидация / любой контракт на границе модуля) — проверить в коде или parent-plan'е, что вышестоящая логика **уже реализована** в текущем состоянии репо, а не записана только как целевое состояние в операционной выжимке. `.claude/rules/safety.md`, инварианты и т.п. описывают **целевое** поведение; реальное состояние читается из исходного кода и parent-plan'ов активных PR'ов.
+Если rejection опирается на цитирование вышестоящей гарантии (safety / sanitization / валидация / любой контракт на границе модуля) — проверить в коде или parent-plan'е, что вышестоящая логика **уже реализована** в текущем состоянии репо, а не записана только как целевое состояние в операционной выжимке. `.claude/rules/safety.md`, инварианты и другие операционные выжимки сами по себе не доказывают реализацию; реальное состояние проверяется по исходному коду и parent-plan активных PR.
 
 ## Audit-trail Gate split (publication ↔ execution)
 

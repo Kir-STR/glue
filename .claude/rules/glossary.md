@@ -29,7 +29,7 @@ class: discipline
 |---|---|---|
 | `delivery` | доставка | |
 | `bundle` | бандл | |
-| `gate` | гейт | |
+| `gate` | гейт | в составных терминах и именах секций (`presence-gate`, «Sensitive paths gate») — keep-English |
 | `manifest` | манифест | |
 | `drift` / `changed` / `missing` | keep-English | только как точные значения `status`; в обычной прозе — дрейф / изменён / отсутствует |
 | `adopt` | keep-English | имя команды, протокола и семейства decision-классов; не общий английский глагол |

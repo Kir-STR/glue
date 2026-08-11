@@ -32,10 +32,16 @@
 - `glue status` после: **`native`, missing 0 / changed 0 / drift 0 / errors 0, все три движка `ok`**.
 - Диффы: 3 файла по 1 строке, `CLAUDE.md` +9, `safety` 12+/14−, `architectural-invariants` 15+/16−, `glossary` 6+/1−, новый `.glue/manifest.json`.
 - Повторная доставка (2026-08-11): 2 writes (architectural-invariants, safety) + 11 materialized поверх манифеста первой доставки; результат — native, 13 files, missing / changed / drift / errors 0.
+- Третья доставка (simplify, 2026-08-11): 5 writes + 8 materialized; локальные simplify-правки применены через adopt, результат — native, 13 files, missing / changed / drift / errors 0.
 
 ## Снятые вопросы
 
 - **Versioning — false positive** (вопрос №9 P2-обзора): `manifest.schema_v2.json` несёт версию контракта в имени (по правилу); `schemaVersion` внутри `.glue/manifest.json` — runtime-дискриминатор экземпляра, не дубль версии документа. Правило `versioning.md` не нарушено и не правилось.
+
+## Беклог-находки (shipped-шаблон, → 2.5б/2.6-shipped, W4)
+
+- `review-loop.md`: «`.claude/rules/safety.md`, инварианты и т.п. описывают **целевое** поведение» — неверно для проектов, где safety заполнен из кода (как здесь). Локально исправлено на нейтральное «сами по себе не доказывают реализацию; реальное состояние проверяется по исходному коду и parent-plan активных PR»; перенести формулировку в шаблон `plugins/glue/content/modules/review-loop.md`.
+- `review-loop.md`: «три волатильные точки» при двух буллетах — счётчик битый и в шаблоне. Локально исправлено на «две»; поправить в шаблоне там же.
 
 ## Итог
 

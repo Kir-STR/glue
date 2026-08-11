@@ -14,7 +14,7 @@ class: discipline
 - **Движок доставки** `plugins/glue/src/{plan,apply,gate,manifest,bundle}.mjs` — планирование, применение, гейт native↔fallback, манифест, чтение бандла.
 - **Общие модули** `plugins/glue/src/{hash,paths,blocks,resolve}.mjs` — вспомогательные функции без записи на диск.
 - **Контент** (`plugins/glue/content/bundle.json`, `plugins/glue/content/modules/*.md`, `plugins/glue/content/instructions/*.tmpl`) — данные, не код. Пути контента задаёт `plugins/glue/glue.contract_v1.json`; контракт и реестр загружает `plugins/glue/src/bundle.mjs`, тела модулей и инструкций читает `plugins/glue/src/plan.mjs`.
-- **Тесты** `plugins/glue/test/*.test.mjs` — один файл на модуль `plugins/glue/src` (`node --test`, Node ≥ 22).
+- **Тесты** `plugins/glue/test/*.test.mjs` — каждый модуль `plugins/glue/src` покрыт тест-файлом; плюс сквозные (`acceptance`, `cutover-hooks`); `node --test`, Node ≥ 22.
 
 Направление импортов однонаправленное: командные модули → движок → общие модули; обратных импортов нет.
 
@@ -26,7 +26,7 @@ class: discipline
 
 Внешних сервис-адаптеров сейчас нет; единственная внешняя граница — файловая система. **Мутации проекта локализованы в `plugins/glue/src/apply.mjs` и `plugins/glue/src/manifest.mjs`** — только они пишут на диск (атомарно, tmp + rename); остальной код читает. Новый модуль не получает право записи — расширение мутаций проходит через apply.
 
-Будущие внешние провайдеры (DecisionProvider / JudgeProvider — см. `docs/product-boundary_v1.md`) не импортируют друг друга; координация живёт уровнем выше, не в адаптерах. [target]
+Будущие внешние провайдеры (DecisionProvider / JudgeProvider — см. `docs/product-boundary_v1.md`) не импортируют друг друга; координация живёт уровнем выше, не в адаптерах.
 
 ## Общие модули — без бизнес-логики
 
