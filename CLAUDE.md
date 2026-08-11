@@ -20,7 +20,7 @@
 
 Чувствительные зоны — PR в них требует отдельного согласования с оператором (см. `.claude/rules/pr-policy.md § «Sensitive paths gate»`):
 
-- `plugins/glue/**` — пока действует continuous release (решение С4), merge в main публикует новую версию плагина;
+- `plugins/glue/**` — пока действует continuous release (решение С4, см. `docs/2026-08-10-glue-improvements-task_v16.md § «7. Принятые решения»`), merge в main публикует новую версию плагина;
 - `.github/workflows/**` — управляет CI-гейтами.
 
 Список активирует правило; отдельные release- и merge-гейты С4 он не заменяет.

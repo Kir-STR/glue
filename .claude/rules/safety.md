@@ -5,7 +5,7 @@ class: discipline
 
 # Safety — инварианты проекта
 
-Операционная выжимка по safety-критичным зонам проекта: деградация без иллюзии покрытия и безопасность записи на диск. Источник правды — исходный код (`plugins/glue/src/gate.mjs`, `plugins/glue/src/session-start.mjs`, `plugins/glue/src/paths.mjs`, `plugins/glue/src/apply.mjs`); при изменении кода — обновлять и здесь; расхождение решается в пользу кода.
+Операционная выжимка по safety-критичным зонам проекта: деградация без иллюзии покрытия и безопасность записи на диск. Источник правды — исходный код (`plugins/glue/src/gate.mjs`, `plugins/glue/src/session-start.mjs`, `plugins/glue/src/manifest.mjs`, `plugins/glue/src/paths.mjs`, `plugins/glue/src/apply.mjs`); при изменении кода — обновлять и здесь; расхождение решается в пользу кода.
 
 ## Kill switch / плавная деградация
 

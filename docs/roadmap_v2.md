@@ -13,7 +13,7 @@
 ### R1 — выполнен (2026-08-10)
 
 - Открытый вопрос v1 «R1 conflict resolution» (как `glue init` разрешает уже разложенные вручную `.claude/rules/`) — **закрыт**: ответом стал семантический **adopt** (PR #25–#31, версия 0.4.5): существующие правила = базлайн, per-module решения (`added-from-template` / `tailored-from-template` / `adopted-existing` / `merged` / `declined` / `local`), манифест v2 перезаписывается целиком, TOCTOU-гейт по `expectedCurrentHash`, presence-gate native↔fallback.
-- **Фаза E выполнена (2026-08-10):** adopt на самом репо Glue — `native`, 13 файлов, 0 расхождений; пять кастом-кейсов классифицированы; отчёт — `docs/2026-08-10-dogfood-adopt-report_v1.md`.
+- **Фаза E выполнена (2026-08-10, повторная доставка 2026-08-11):** adopt на самом репо Glue — `native`, 13 файлов, 0 расхождений; пять кастом-кейсов классифицированы; отчёт — `docs/2026-08-10-dogfood-adopt-report_v1.md`.
 - **Retro-долг — отдельный follow-up** (не часть закрытия R1): 15 файлов `.invoker/retro/` + `ideas_4_rules.md` (11 строк); параллельный трек к W2.
 
 ## Последовательность (скелет v1 без изменений)
