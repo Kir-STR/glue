@@ -35,4 +35,4 @@ Implementer-субагенты диспатчатся **строго после�
 
 ## Umbrella sensitive-paths pre-flight
 
-Для зонтичного плана (≥ 2 child-PR) — sensitive-paths sweep по каждому glob из `CLAUDE.md § «Sensitive paths gate»` ДО старта исполнения; > 0 совпадений → true-positive (план `review-approved` для child-PR) либо false-positive (narrow-CI fix отдельным PR заранее, ДО исполнения).
+Для зонтичного плана (≥ 2 child-PR) — sensitive-paths sweep по каждому glob из списка чувствительных путей проекта (см. правило `pr-policy` § «Sensitive paths gate»; если список не задан — шаг пропускается) ДО старта исполнения; > 0 совпадений → true-positive (план `review-approved` для child-PR) либо false-positive (narrow-CI fix отдельным PR заранее, ДО исполнения).

@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "2",
+  "deliveryId": "2026-08-11T07:36:31.485Z",
+  "completedAt": "2026-08-11T07:36:31.485Z",
+  "engines": [
+    "claude",
+    "codex",
+    "gemini"
+  ],
+  "modules": [
+    {
+      "id": "operator-gate",
+      "decision": "added-from-template",
+      "targetPaths": [
+        ".claude/rules/operator-gate.md"
+      ],
+      "referenceTemplate": "operator-gate.md"
+    },
+    {
+      "id": "secret-hygiene",
+      "decision": "added-from-template",
+      "targetPaths": [
+        ".claude/rules/secret-hygiene.md"
+      ],
+      "referenceTemplate": "secret-hygiene.md"
+    },
+    {
+      "id": "worktree-workflow",
+      "decision": "added-from-template",
+      "targetPaths": [
+        ".claude/rules/worktree-workflow.md"
+      ],
+      "referenceTemplate": "worktree-workflow.md"
+    },
+    {
+      "id": "versioning",
+      "decision": "added-from-template",
+      "targetPaths": [
+        ".claude/rules/versioning.md"
+      ],
+      "referenceTemplate": "versioning.md"
+    },
+    {
+      "id": "pr-policy",
+      "decision": "added-from-template",
+      "targetPaths": [
+        ".claude/rules/pr-policy.md"
+      ],
+      "referenceTemplate": "pr-policy.md"
+    },
+    {
+      "id": "subagent-dispatch",
+      "decision": "added-from-template",
+      "targetPaths": [
+        ".claude/rules/subagent-dispatch.md"
+      ],
+      "referenceTemplate": "subagent-dispatch.md"
+    },
+    {
+      "id": "review-loop",
+      "decision": "merged",
+      "targetPaths": [
+        ".claude/rules/review-loop.md"
+      ],
+      "referenceTemplate": "review-loop.md"
+    },
+    {
+      "id": "architectural-invariants",
+      "decision": "tailored-from-template",
+      "targetPaths": [
+        ".claude/rules/architectural-invariants.md"
+      ],
+      "referenceTemplate": "architectural-invariants.md"
+    },
+    {
+      "id": "safety",
+      "decision": "tailored-from-template",
+      "targetPaths": [
+        ".claude/rules/safety.md"
+      ],
+      "referenceTemplate": "safety.md"
+    },
+    {
+      "id": "glossary",
+      "decision": "tailored-from-template",
+      "targetPaths": [
+        ".claude/rules/glossary.md"
+      ],
+      "referenceTemplate": "glossary.md"
+    },
+    {
+      "id": "retro-loop",
+      "decision": "local",
+      "targetPaths": [
+        ".claude/rules/retro-loop.md"
+      ]
+    }
+  ],
+  "status": "complete",
+  "files": [
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": null,
+      "targetPath": ".claude/rules/architectural-invariants.md",
+      "writtenHash": "ddff7a126387dae76bcfab4c86d7217446a0a0fa5634f12528ce0ffd1edf1d3d"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": null,
+      "targetPath": ".claude/rules/safety.md",
+      "writtenHash": "3eb1f314d542be839b09e9cf4af7c351b42310079985515d66680e79aa6f1d0e"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": null,
+      "targetPath": "CLAUDE.md",
+      "writtenHash": "615d5b03bbe2fab871b45316dd494db5bec01ad2d2aa5bbb4094c6babc12869c"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": "pr-policy.md",
+      "targetPath": ".claude/rules/pr-policy.md",
+      "writtenHash": "7fe23137f5743de0fe346c47566acd955a3605f6e5abe19b720c7164dea35741"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": "subagent-dispatch.md",
+      "targetPath": ".claude/rules/subagent-dispatch.md",
+      "writtenHash": "2fff554885dc1b192383b88a9405374016254c38ff7c267d8d7a451cb8751b1d"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": null,
+      "targetPath": ".claude/rules/review-loop.md",
+      "writtenHash": "8a4ad4d917bc9b44be7e3080ba9b21ec9f395802fc3d511fc47589a0ae4acbee"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": null,
+      "targetPath": ".claude/rules/glossary.md",
+      "writtenHash": "ce6405c2d5364b02caf4a137cacd549ade43b568a0e1f1fe40c607bb15adf777"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": "operator-gate.md",
+      "targetPath": ".claude/rules/operator-gate.md",
+      "writtenHash": "a9c16c539f391878619ff5c47ecd58a926c8d5eab233c64e2c7bcc61e511949f"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": "secret-hygiene.md",
+      "targetPath": ".claude/rules/secret-hygiene.md",
+      "writtenHash": "cf52ff219e6554b321c0bec68fdc9c0c1d6c0f1bbbab366f3584ee0da72f500c"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": "worktree-workflow.md",
+      "targetPath": ".claude/rules/worktree-workflow.md",
+      "writtenHash": "b2988f7ca3bd53b36c7e2bdfae9948f44503b65552abcd035a71b93b6d04b451"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": "versioning.md",
+      "targetPath": ".claude/rules/versioning.md",
+      "writtenHash": "d70d797cde1d96a19e69eaa47b3658acbe5e9ab0c90c87596b0dc6a5b80aab7c"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": null,
+      "targetPath": "AGENTS.md",
+      "writtenHash": "f64e8966d2e94b6471fcaa7a084bdd8cf68ab2e859ba385e129d1b5f4afbc4d1"
+    },
+    {
+      "producerPack": "glue",
+      "packVersion": "0.4.5",
+      "sourceTemplate": null,
+      "targetPath": "GEMINI.md",
+      "writtenHash": "eb18841a424a6f6ab3cabe9edfc2f5808f5e1c2c99d4378232616d7beae8084c"
+    }
+  ]
+}
