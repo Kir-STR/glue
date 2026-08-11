@@ -15,3 +15,12 @@
 - **Architectural invariants** — границы слоёв и модулей проекта. См. `.claude/rules/architectural-invariants.md`.
 - **Versioning** — версионирование контрактов и документов. См. `.claude/rules/versioning.md`.
 - **Glossary** — канон терминов. См. `.claude/rules/glossary.md`.
+
+## Sensitive paths gate
+
+Чувствительные зоны — PR в них требует отдельного согласования с оператором (см. `.claude/rules/pr-policy.md § «Sensitive paths gate»`):
+
+- `plugins/glue/**` — пока действует continuous release (решение С4), merge в main публикует новую версию плагина;
+- `.github/workflows/**` — управляет CI-гейтами.
+
+Список активирует правило; отдельные release- и merge-гейты С4 он не заменяет.
