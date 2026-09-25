@@ -11,3 +11,11 @@ test('hashContent детерминирован и hex', () => {
 test('hashContent различает входы', () => {
   assert.notEqual(hashContent('a'), hashContent('b'))
 })
+
+test('hashContent не зависит от окончаний строк CRLF/LF', () => {
+  assert.equal(hashContent('a\r\nb\r\n'), hashContent('a\nb\n'))
+})
+
+test('hashContent после нормализации ловит изменение текста', () => {
+  assert.notEqual(hashContent('a\r\nb\r\n'), hashContent('a\nc\n'))
+})
