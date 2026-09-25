@@ -16,6 +16,11 @@ It ships as a single `glue` plugin: the mechanism and the rule content are embed
 - `/glue:list` — shows the available rule modules (id, group, defaults, dependencies).
 - `/glue:init` — installs the selected modules for the chosen engines. It writes the rule bodies to `.claude/rules/*.md`, native entry files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`), and a delivery manifest at `.glue/manifest.json`. Re-running with the same selection is a no-op.
 - `/glue:status` — reports whether installed files still match what Glue wrote: `missing`, `changed` (edited by hand), or in `drift`.
+- `/glue:feedback` — drafts a GitHub issue about a Glue problem and files it after your confirmation.
+
+## Updating to 0.4.6
+
+Content hashes no longer depend on line endings (CRLF/LF). After the update, `/glue:status` may once report `changed` for files written by `/glue:adopt` with CRLF endings. If `git status` shows no changes to such a file, a likely cause is the old hash: refresh the manifest with a regular `/glue:adopt`, reviewing and confirming the changes.
 
 ## Available today
 
